@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>カメラでおだいゲーム！</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 丸みのある可愛い日本語フォント (Zen Maru Gothic) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    /* 全体のフォントとベース設定 */
+    body {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      background-color: #FFFDF0;
+      background-image: radial-gradient(#FDE68A 2.5px, transparent 2.5px), radial-gradient(#FBCFE8 2.5px, #FFFDF0 2.5px);
+      background-size: 40px 40px;
+      background-position: 0 0, 20px 20px;
+      color: #334155;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    /* ぷにっと押せる立体ボタン */
+    .btn-pop {
+      transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.1s ease;
+    }
+    .btn-pop:active {
+      transform: translateY(4px) scale(0.97);
+    }
+
+    /* ふわふわ浮くアニメーション */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(2deg); }
+    }
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    /* ぽよんと登場するアニメーション */
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop-in {
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* キラキラ回転 */
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spinSlow 12s linear infinite;
+    }
+
+    /* シャッターフラッシュ */
+    @keyframes flashAnim {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .flash-active {
+      animation: flashAnim 0.5s ease-out forwards;
+    }
+
+    /* カメラ映像の反転（インカメ用） */
+    .mirror-video {
+      transform: scaleX(-1);
+    }
+
+    /* カスタムスクロールバー非表示 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+  <!-- フラッシュ演出用オーバーレイ -->
+  <div id="flash-overlay" class="fixed inset-0 bg-white pointer-events-none opacity-0 z-50"></div>
+
+  <!-- メッセージトースト（alertの代わり） -->
+  <div id="toast-box" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 -translate-y-4">
+    <div id="toast-text" class="bg-slate-800 text-white font-bold px-6 py-3 rounded-full shadow-xl text-base sm:text-lg whitespace-nowrap border-2 border-white">
+      メッセージ
+    </div>
+  </div>
+
+  <!-- ヘッダー -->
+  <header class="w-full max-w-2xl mx-auto px-4 pt-3 pb-2 flex items-center justify-between z-20">
+    <button id="btn-home-header" onclick="goHome()" class="flex items-center gap-2 bg-white px-3.5 py-2 rounded-full shadow-md border-2 border-amber-300 btn-pop">
+      <span class="text-2xl">📸</span>
+      <span class="font-black text-amber-600 text-base sm:text-lg tracking-wide">おだいカメラ</span>
+    </button>
+
+    <div class="flex items-center gap-2">
+      <!-- アルバムボタン -->
+      <button onclick="openAlbum()" class="relative flex items-center gap-1.5 bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold px-3.5 py-2 rounded-full shadow-md border-2 border-pink-300 btn-pop">
+        <span class="text-xl">🖼️</span>
+        <span class="text-sm sm:text-base">アルバム</span>
+        <span id="album-badge" class="hidden bg-pink-500 text-white text-xs font-black px-2 py-0.5 rounded-full ml-0.5">0</span>
+      </button>
+
+      <!-- おと（サウンド）切り替えボタン -->
+      <button id="btn-sound" onclick="toggleSound()" class="bg-sky-100 hover:bg-sky-200 text-sky-700 p-2.5 rounded-full shadow-md border-2 border-sky-300 btn-pop" aria-label="おとのきりかえ">
+        <span id="sound-icon" class="text-xl leading-none block">🔊</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツエリア -->
+  <main class="flex-1 w-full max-w-2xl mx-auto px-4 pb-6 flex flex-col justify-center">
+
+    <!-- ==========================================
+         1. ホーム画面（テーマえらび）
+         ========================================== -->
+    <section id="screen-home" class="flex flex-col items-center justify-center py-2 space-y-5 animate-pop-in">
+      <!-- タイトルバナー -->
+      <div class="text-center bg-white/90 backdrop-blur-sm px-6 py-5 rounded-3xl shadow-lg border-4 border-amber-300 w-full relative overflow-hidden">
+        <div class="absolute -top-4 -left-4 text-4xl opacity-30 animate-spin-slow">🌟</div>
+        <div class="absolute -bottom-4 -right-4 text-4xl opacity-30 animate-spin-slow">🌈</div>
+        <div class="inline-block bg-amber-400 text-white text-xs sm:text-sm font-black px-4 py-1 rounded-full mb-2 shadow-sm">
+          みつけて パシャッ！
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight leading-snug">
+          どの テーマで あそぶ？
+        </h1>
+        <p class="text-slate-500 font-bold text-sm sm:text-base mt-1">
+          すきな ボタンを おしてね！
+        </p>
+      </div>
+
+      <!-- 4つのテーマカード -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        <!-- いえのなか -->
+        <button onclick="selectTheme('indoor')" class="btn-pop group bg-gradient-to-br from-orange-400 to-amber-500 text-white p-5 rounded-3xl shadow-[0_6px_0_#d97706] border-4 border-white flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+          <div class="text-5xl sm:text-6xl bg-white/25 w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            🏠
+          </div>
+          <div>
+            <div class="text-2xl sm:text-3xl font-black drop-shadow-sm">いえの なか</div>
+            <div class="text-amber-100 font-bold text-sm mt-1">おうちの なかで さがそう！</div>
+          </div>
+        </button>
+
+        <!-- いえのそと -->
+        <button onclick="selectTheme('outdoor')" class="btn-pop group bg-gradient-to-br from-emerald-400 to-green-500 text-white p-5 rounded-3xl shadow-[0_6px_0_#059669] border-4 border-white flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+          <div class="text-5xl sm:text-6xl bg-white/25 w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            🌳
+          </div>
+          <div>
+            <div class="text-2xl sm:text-3xl font-black drop-shadow-sm">いえの そと</div>
+            <div class="text-emerald-100 font-bold text-sm mt-1">おそとや こうえんで さがそう！</div>
+          </div>
+        </button>
+
+        <!-- ひと・かお -->
+        <button onclick="selectTheme('people')" class="btn-pop group bg-gradient-to-br from-pink-400 to-rose-500 text-white p-5 rounded-3xl shadow-[0_6px_0_#e11d48] border-4 border-white flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+          <div class="text-5xl sm:text-6xl bg-white/25 w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            😆
+          </div>
+          <div>
+            <div class="text-2xl sm:text-3xl font-black drop-shadow-sm">ひと・かお</div>
+            <div class="text-pink-100 font-bold text-sm mt-1">たのしい ポーズや かおを とろう！</div>
+          </div>
+        </button>
+
+        <!-- いろいろ（ぜんぶ） -->
+        <button onclick="selectTheme('all')" class="btn-pop group bg-gradient-to-br from-sky-400 to-indigo-500 text-white p-5 rounded-3xl shadow-[0_6px_0_#4f46e5] border-4 border-white flex items-center sm:flex-col sm:justify-center gap-4 text-left sm:text-center">
+          <div class="text-5xl sm:text-6xl bg-white/25 w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            🌈
+          </div>
+          <div>
+            <div class="text-2xl sm:text-3xl font-black drop-shadow-sm">いろいろ</div>
+            <div class="text-sky-100 font-bold text-sm mt-1">ぜんぶの なかから でるよ！</div>
+          </div>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         2. おだいルーレット画面
+         ========================================== -->
+    <section id="screen-roulette" class="hidden flex-col items-center justify-center py-4 space-y-6">
+      <div id="roulette-theme-badge" class="bg-amber-400 text-white font-black px-5 py-1.5 rounded-full text-base sm:text-lg shadow-md border-2 border-white">
+        🏠 いえの なか
+      </div>
+
+      <!-- ルーレット表示カード -->
+      <div class="w-full bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-amber-400 text-center relative overflow-hidden">
+        <div class="text-slate-400 font-bold text-base sm:text-lg mb-2">きょうの おだいは…</div>
+        
+        <div class="my-4 py-6 px-3 bg-amber-50 rounded-2xl border-2 border-dashed border-amber-300 flex flex-col items-center justify-center min-h-[180px]">
+          <div id="roulette-emoji" class="text-6xl sm:text-7xl mb-3 transition-transform duration-100">❓</div>
+          <div id="roulette-text" class="text-2xl sm:text-4xl font-black text-slate-800 leading-tight break-keep">
+            なにが でるかな？
+          </div>
+        </div>
+
+        <p id="roulette-sub" class="text-amber-600 font-bold text-sm sm:text-base h-6">
+          ドキドキ…！
+        </p>
+      </div>
+
+      <!-- アクションボタン（ルーレット停止後に表示） -->
+      <div id="roulette-actions" class="hidden w-full flex flex-col gap-3 animate-pop-in">
+        <button onclick="startCameraScreen()" class="btn-pop w-full bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-2xl sm:text-3xl py-5 rounded-3xl shadow-[0_6px_0_#be123c] border-4 border-white flex items-center justify-center gap-3">
+          <span>📷</span>
+          <span>カメラで とる！</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="spinRoulette()" class="btn-pop bg-amber-100 hover:bg-amber-200 text-amber-800 font-black text-base sm:text-lg py-3.5 rounded-2xl border-2 border-amber-300 shadow-sm flex items-center justify-center gap-1.5">
+            <span>🔄</span>
+            <span>おだいを かえる</span>
+          </button>
+          <button onclick="goHome()" class="btn-pop bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-base sm:text-lg py-3.5 rounded-2xl border-2 border-slate-300 shadow-sm flex items-center justify-center gap-1.5">
+            <span>🏠</span>
+            <span>テーマを えらぶ</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         3. カメラさつえい画面
+         ========================================== -->
+    <section id="screen-camera" class="hidden flex-col items-center space-y-3">
+      <!-- おだい表示バー（上部） -->
+      <div class="w-full bg-white rounded-2xl p-3 sm:p-4 shadow-md border-4 border-amber-400 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <span id="cam-prompt-emoji" class="text-3xl sm:text-4xl shrink-0 bg-amber-100 p-2 rounded-xl">🍎</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-amber-600">これを とろう！</div>
+            <div id="cam-prompt-text" class="text-lg sm:text-2xl font-black text-slate-800 truncate">
+              あかい もの
+            </div>
+          </div>
+        </div>
+        <button onclick="backToRoulette()" class="btn-pop shrink-0 bg-amber-100 text-amber-800 font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border-2 border-amber-300">
+          🔄 かえる
+        </button>
+      </div>
+
+      <!-- カメラビューファインダー -->
+      <div class="relative w-full aspect-[4/3] sm:aspect-[16/11] bg-slate-900 rounded-3xl overflow-hidden shadow-xl border-4 border-white flex items-center justify-center">
+        <!-- リアルタイム映像 -->
+        <video id="camera-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+        <!-- カメラが使えない時のフォールバック案内 -->
+        <div id="camera-fallback-box" class="hidden absolute inset-0 bg-slate-800/95 flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+          <div class="text-5xl">📷💦</div>
+          <p class="text-lg sm:text-xl font-black leading-relaxed">
+            カメラが つかえないみたい！<br>
+            しゃしんを えらんで あそぼう！
+          </p>
+          <label class="btn-pop cursor-pointer bg-amber-400 text-slate-900 font-black text-lg px-6 py-3.5 rounded-2xl shadow-lg border-2 border-white inline-flex items-center gap-2">
+            <span>📁</span>
+            <span>しゃしんを えらぶ</span>
+            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleFileUpload(event)">
+          </label>
+        </div>
+
+        <!-- ファインダーの四隅ガイド（可愛い装飾） -->
+        <div class="pointer-events-none absolute inset-3 border-2 border-white/40 rounded-2xl"></div>
+
+        <!-- カメラ切り替えボタン（右上） -->
+        <button id="btn-switch-camera" onclick="switchCamera()" class="btn-pop absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm font-bold text-xs sm:text-sm px-3.5 py-2 rounded-full border-2 border-white/70 flex items-center gap-1.5 shadow-lg">
+          <span class="text-base">🔁</span>
+          <span>カメラ きりかえ</span>
+        </button>
+
+        <!-- ファイルから選ぶサブボタン（左上） -->
+        <label class="btn-pop cursor-pointer absolute top-3 left-3 bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm font-bold text-xs sm:text-sm px-3 py-2 rounded-full border-2 border-white/70 flex items-center gap-1 shadow-lg">
+          <span>🖼️</span>
+          <span>えらぶ</span>
+          <input type="file" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+        </label>
+      </div>
+
+      <!-- シャッターボタンエリア -->
+      <div class="w-full flex items-center justify-center pt-1 pb-2">
+        <button id="btn-shutter" onclick="takePhoto()" class="btn-pop group relative bg-gradient-to-b from-rose-400 to-rose-600 text-white font-black text-2xl sm:text-3xl px-10 py-4 sm:py-5 rounded-full shadow-[0_8px_0_#9f1239] border-4 border-white flex items-center gap-3">
+          <span class="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">📸</span>
+          <span>パシャッ！</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         4. けっか画面（はなまるフレーム合成）
+         ========================================== -->
+    <section id="screen-result" class="hidden flex-col items-center space-y-4 animate-pop-in">
+      <!-- お祝いバナー -->
+      <div class="text-center">
+        <span class="inline-block bg-gradient-to-r from-amber-400 via-pink-500 to-indigo-500 text-white font-black text-lg sm:text-2xl px-6 py-1.5 rounded-full shadow-md border-2 border-white animate-float">
+          🎉 だいせいこう！ はなまる！ 🎉
+        </span>
+      </div>
+
+      <!-- 合成済み画像プレビュー -->
+      <div class="w-full bg-white p-2.5 sm:p-3 rounded-3xl shadow-xl border-4 border-pink-300">
+        <img id="result-image" src="" alt="とったしゃしん" class="w-full h-auto rounded-2xl block shadow-inner bg-slate-100">
+      </div>
+
+      <!-- 操作ボタン群 -->
+      <div class="w-full space-y-3">
+        <!-- つぎのおだいへ -->
+        <button onclick="nextPromptSameTheme()" class="btn-pop w-full bg-gradient-to-r from-emerald-400 to-green-500 text-white font-black text-xl sm:text-2xl py-4 rounded-3xl shadow-[0_6px_0_#047857] border-4 border-white flex items-center justify-center gap-2">
+          <span>✨</span>
+          <span>つぎの おだいへ！</span>
+        </button>
+
+        <!-- ほぞんする & とりなおす -->
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="downloadResultImage()" class="btn-pop bg-sky-500 hover:bg-sky-600 text-white font-black text-base sm:text-lg py-3.5 rounded-2xl shadow-[0_4px_0_#0369a1] border-2 border-white flex items-center justify-center gap-1.5">
+            <span>💾</span>
+            <span>ほぞんする</span>
+          </button>
+          <button onclick="retakePhoto()" class="btn-pop bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-base sm:text-lg py-3.5 rounded-2xl shadow-[0_4px_0_#b45309] border-2 border-white flex items-center justify-center gap-1.5">
+            <span>📷</span>
+            <span>とりなおす</span>
+          </button>
+        </div>
+
+        <!-- テーマをえらぶ -->
+        <button onclick="goHome()" class="btn-pop w-full bg-white hover:bg-slate-50 text-slate-600 font-bold text-base py-3 rounded-2xl border-2 border-slate-200 shadow-sm">
+          🏠 テーマを えらぶ に もどる
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       5. アルバムモーダル
+       ========================================== -->
+  <div id="modal-album" class="hidden fixed inset-0 z-40 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#FFFDF0] w-full max-w-2xl max-h-[88vh] rounded-3xl border-4 border-pink-400 shadow-2xl flex flex-col overflow-hidden animate-pop-in">
+      <!-- モーダルヘッダー -->
+      <div class="bg-pink-400 text-white px-5 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🖼️</span>
+          <h2 class="text-xl sm:text-2xl font-black">おもいで アルバム</h2>
+        </div>
+        <button onclick="closeAlbum()" class="btn-pop bg-white text-pink-600 font-black px-3.5 py-1.5 rounded-full text-sm sm:text-base shadow">
+          ✕ とじる
+        </button>
+      </div>
+
+      <!-- 写真一覧エリア -->
+      <div id="album-grid-container" class="flex-1 overflow-y-auto p-4">
+        <div id="album-empty" class="hidden flex-col items-center justify-center py-12 text-center space-y-3">
+          <div class="text-6xl">📷</div>
+          <p class="text-lg font-black text-slate-600">まだ しゃしんが ないよ！</p>
+          <p class="text-sm font-bold text-slate-400">おだいに チャレンジして パシャッと とろう！</p>
+        </div>
+        <div id="album-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <!-- JSでサムネイルを追加 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- アルバム拡大プレビューモーダル -->
+  <div id="modal-photo-detail" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-xl bg-white p-3 rounded-3xl border-4 border-amber-400 shadow-2xl space-y-3 animate-pop-in">
+      <img id="detail-img" src="" alt="かくだいしゃしん" class="w-full h-auto rounded-2xl">
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="downloadDetailImage()" class="btn-pop bg-sky-500 text-white font-black py-3 rounded-2xl text-sm sm:text-base flex items-center justify-center gap-1">
+          <span>💾</span><span>ほぞん</span>
+        </button>
+        <button onclick="deleteDetailImage()" class="btn-pop bg-rose-100 text-rose-600 font-black py-3 rounded-2xl text-sm sm:text-base flex items-center justify-center gap-1 border-2 border-rose-200">
+          <span>🗑️</span><span>けす</span>
+        </button>
+        <button onclick="closePhotoDetail()" class="btn-pop bg-slate-700 text-white font-black py-3 rounded-2xl text-sm sm:text-base">
+          とじる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 画像合成用の非表示Canvas -->
+  <canvas id="render-canvas" class="hidden"></canvas>
+
+  <!-- ==========================================
+       JavaScript ロジック
+       ========================================== -->
+  <script>
+    /**
+     * 1. おだいデータベース（すべてひらがな・カタカナ表記、漢字なし）
+     */
+    const PROMPTS = {
+      indoor: [
+        { text: "あかい もの", emoji: "🍎" },
+        { text: "あおい もの", emoji: "📘" },
+        { text: "きいろい もの", emoji: "🍌" },
+        { text: "みどりいろの もの", emoji: "🐸" },
+        { text: "まるい もの", emoji: "⚽" },
+        { text: "しかくい もの", emoji: "📦" },
+        { text: "やわらかい もの", emoji: "🧸" },
+        { text: "かたい もの", emoji: "🪨" },
+        { text: "みずが でる ところ", emoji: "🚰" },
+        { text: "ほん や えほん", emoji: "📚" },
+        { text: "おきにいりの おもちゃ", emoji: "🚂" },
+        { text: "くつ や くつした", emoji: "🧦" },
+        { text: "とけい", emoji: "⏰" },
+        { text: "コップ や おさら", emoji: "🥤" },
+        { text: "スプーン や フォーク", emoji: "🥄" },
+        { text: "テレビ や リモコン", emoji: "📺" },
+        { text: "まくら や おふとん", emoji: "🛏️" },
+        { text: "いす や ソファ", emoji: "🪑" },
+        { text: "かがみ", emoji: "🪞" },
+        { text: "ピカピカ ひかる もの", emoji: "✨" },
+        { text: "ふわふわな もの", emoji: "☁️" },
+        { text: "おおきい もの", emoji: "🐘" },
+        { text: "ちいさい もの", emoji: "🐜" },
+        { text: "おいしい もの", emoji: "🍙" }
+      ],
+      outdoor: [
+        { text: "きれいな おはな", emoji: "🌼" },
+        { text: "みどりの はっぱ", emoji: "🍃" },
+        { text: "おおきな き", emoji: "🌳" },
+        { text: "ちいさな むし", emoji: "🐞" },
+        { text: "くるま や バス", emoji: "🚗" },
+        { text: "じてんしゃ", emoji: "🚲" },
+        { text: "おそらの くも", emoji: "☁️" },
+        { text: "いしころ", emoji: "🪨" },
+        { text: "とり や ハト", emoji: "🐦" },
+        { text: "まるい もの", emoji: "🌕" },
+        { text: "あかい もの", emoji: "📮" },
+        { text: "きいろい もの", emoji: "🌻" },
+        { text: "じぶんの かげ", emoji: "👤" },
+        { text: "こうえんの ゆうぐ", emoji: "🛝" },
+        { text: "マンホール", emoji: "⭕" },
+        { text: "でんしゃ や せんろ", emoji: "🚃" },
+        { text: "じどうはんばいき", emoji: "🥤" },
+        { text: "かんばん や マーク", emoji: "🪧" },
+        { text: "おみず や いけ", emoji: "💧" },
+        { text: "くさ や タンポポ", emoji: "🌱" },
+        { text: "おうち や ビル", emoji: "🏢" },
+        { text: "ねこ や いぬ", emoji: "🐶" }
+      ],
+      people: [
+        { text: "とびっきりの えがお！", emoji: "😁" },
+        { text: "おもしろい へんがお！", emoji: "🤪" },
+        { text: "ピースサイン！", emoji: "✌️" },
+        { text: "びっくりした かお！", emoji: "😱" },
+        { text: "すやすや ねてる ふり", emoji: "😴" },
+        { text: "げんきに ばんざい！", emoji: "🙌" },
+        { text: "ライオンの ガオー！", emoji: "🦁" },
+        { text: "うさぎさんの みみ！", emoji: "🐰" },
+        { text: "かっこいい ポーズ！", emoji: "🦸" },
+        { text: "かわいい ポーズ！", emoji: "🎀" },
+        { text: "ぷんぷん おこった かお", emoji: "😤" },
+        { text: "おほしさま ポーズ！", emoji: "⭐" },
+        { text: "ロボットの まね！", emoji: "🤖" },
+        { text: "ほっぺに ハート！", emoji: "🫶" },
+        { text: "おさるさんの まね！", emoji: "🐵" },
+        { text: "てを つなごう！", emoji: "🤝" },
+        { text: "ジャンプの しゅんかん！", emoji: "🦘" }
+      ]
+    };
+
+    const THEME_META = {
+      indoor:  { label: "🏠 いえの なか", color: "#F59E0B" },
+      outdoor: { label: "🌳 いえの そと", color: "#10B981" },
+      people:  { label: "😆 ひと・かお", color: "#EC4899" },
+      all:     { label: "🌈 いろいろ",   color: "#6366F1" }
+    };
+
+    /**
+     * 2. アプリ状態管理
+     */
+    let currentTheme = 'indoor';
+    let currentPrompt = null;
+    let lastPromptText = '';
+    let mediaStream = null;
+    let facingMode = 'environment'; // 'user' (インカメ) または 'environment' (アウトカメ)
+    let soundEnabled = true;
+    let latestCompositeDataUrl = '';
+    let albumPhotos = []; // { id, dataUrl, prompt, date }
+    let selectedDetailId = null;
+    let rouletteTimer = null;
+
+    /**
+     * 3. Web Audio API 効果音ジェネレーター（外部音声ファイル不要）
+     */
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      // ボタンを押したときの「ピコッ」
+      playPop(freq = 520) {
+        if (!soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.4, now + 0.08);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      },
+      // ルーレット回転音「チッ」
+      playTick(step = 0) {
+        if (!soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400 + (step % 5) * 60, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      },
+      // おだい決定「ジャジャーン！」
+      playFanfare() {
+        if (!soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // ド・ミ・ソ・ド
+        notes.forEach((freq, i) => {
+          const now = this.ctx.currentTime + i * 0.09;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        });
+      },
+      // シャッター音「カシャッ！」
+      playShutter() {
+        if (!soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // ホワイトノイズで機械シャッター感を演出
+        const bufferSize = this.ctx.sampleRate * 0.14;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1800;
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+    };
+
+    /**
+     * 4. 初期化とアルバム読み込み
+     */
+    window.onload = function () {
+      loadAlbumFromStorage();
+      updateAlbumBadge();
+    };
+
+    function loadAlbumFromStorage() {
+      try {
+        const saved = localStorage.getItem('kodomo_odai_camera_album_v1');
+        if (saved) {
+          albumPhotos = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.warn('アルバムのよみこみにしっぱい:', e);
+        albumPhotos = [];
+      }
+    }
+
+    function saveAlbumToStorage() {
+      try {
+        // 容量オーバーを防ぐため最大18枚まで保持
+        while (albumPhotos.length > 18) {
+          albumPhotos.pop();
+        }
+        localStorage.setItem('kodomo_odai_camera_album_v1', JSON.stringify(albumPhotos));
+      } catch (e) {
+        // 容量がいっぱいの場合は古いものを消して再試行
+        if (albumPhotos.length > 1) {
+          albumPhotos.pop();
+          saveAlbumToStorage();
+        }
+      }
+      updateAlbumBadge();
+    }
+
+    function updateAlbumBadge() {
+      const badge = document.getElementById('album-badge');
+      if (albumPhotos.length > 0) {
+        badge.textContent = albumPhotos.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    /**
+     * 5. 画面切り替えヘルパー
+     */
+    function showScreen(screenId) {
+      const screens = ['screen-home', 'screen-roulette', 'screen-camera', 'screen-result'];
+      screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (id === screenId) {
+          el.classList.remove('hidden');
+          el.classList.add('flex');
+        } else {
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        }
+      });
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      const text = document.getElementById('toast-text');
+      text.textContent = msg;
+      box.classList.remove('opacity-0', '-translate-y-4');
+      box.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        box.classList.add('opacity-0', '-translate-y-4');
+        box.classList.remove('opacity-100', 'translate-y-0');
+      }, 2400);
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+      if (soundEnabled) {
+        AudioEngine.playPop(660);
+        showToast('おと：オン 🔊');
+      } else {
+        showToast('おと：オフ 🔇');
+      }
+    }
+
+    /**
+     * 6. ホーム画面 & ルーレットロジック
+     */
+    function goHome() {
+      AudioEngine.playPop(440);
+      stopCameraStream();
+      clearInterval(rouletteTimer);
+      showScreen('screen-home');
+    }
+
+    function selectTheme(themeKey) {
+      AudioEngine.playPop(580);
+      currentTheme = themeKey;
+
+      // 「ひと・かお」のときはインカメ優先、それ以外はアウトカメ優先
+      facingMode = (themeKey === 'people') ? 'user' : 'environment';
+
+      const badge = document.getElementById('roulette-theme-badge');
+      badge.textContent = THEME_META[themeKey].label;
+      badge.style.backgroundColor = THEME_META[themeKey].color;
+
+      showScreen('screen-roulette');
+      spinRoulette();
+    }
+
+    function getPromptPool(themeKey) {
+      if (themeKey === 'all') {
+        return [...PROMPTS.indoor, ...PROMPTS.outdoor, ...PROMPTS.people];
+      }
+      return PROMPTS[themeKey] || PROMPTS.indoor;
+    }
+
+    function spinRoulette() {
+      clearInterval(rouletteTimer);
+      const actions = document.getElementById('roulette-actions');
+      const subText = document.getElementById('roulette-sub');
+      const emojiEl = document.getElementById('roulette-emoji');
+      const textEl = document.getElementById('roulette-text');
+
+      actions.classList.add('hidden');
+      subText.textContent = 'ドキドキ…！ なにが でるかな？';
+
+      const pool = getPromptPool(currentTheme);
+      let count = 0;
+      const totalTicks = 16;
+
+      rouletteTimer = setInterval(() => {
+        const randItem = pool[Math.floor(Math.random() * pool.length)];
+        emojiEl.textContent = randItem.emoji;
+        textEl.textContent = randItem.text;
+        emojiEl.style.transform = count % 2 === 0 ? 'scale(1.15) rotate(-5deg)' : 'scale(0.95) rotate(5deg)';
+        AudioEngine.playTick(count);
+        count++;
+
+        if (count >= totalTicks) {
+          clearInterval(rouletteTimer);
+          // 前回と同じお題を避けて決定
+          let chosen = pool[Math.floor(Math.random() * pool.length)];
+          if (pool.length > 1 && chosen.text === lastPromptText) {
+            chosen = pool[(pool.indexOf(chosen) + 1) % pool.length];
+          }
+          currentPrompt = chosen;
+          lastPromptText = chosen.text;
+
+          emojiEl.textContent = chosen.emoji;
+          textEl.textContent = chosen.text;
+          emojiEl.style.transform = 'scale(1.1) rotate(0deg)';
+          subText.textContent = '✨ けってい！ さあ さがしにいこう！ ✨';
+          actions.classList.remove('hidden');
+          AudioEngine.playFanfare();
+        }
+      }, 75);
+    }
+
+    function backToRoulette() {
+      AudioEngine.playPop(500);
+      stopCameraStream();
+      showScreen('screen-roulette');
+      spinRoulette();
+    }
+
+    function nextPromptSameTheme() {
+      AudioEngine.playPop(580);
+      showScreen('screen-roulette');
+      spinRoulette();
+    }
+
+    /**
+     * 7. カメラ制御ロジック
+     */
+    async function startCameraScreen() {
+      AudioEngine.playPop(620);
+      document.getElementById('cam-prompt-emoji').textContent = currentPrompt.emoji;
+      document.getElementById('cam-prompt-text').textContent = currentPrompt.text;
+
+      showScreen('screen-camera');
+      await initCamera();
+    }
+
+    async function initCamera() {
+      stopCameraStream();
+      const video = document.getElementById('camera-video');
+      const fallbackBox = document.getElementById('camera-fallback-box');
+
+      // インカメの時は鏡のように左右反転表示すると子供がポーズを取りやすい
+      if (facingMode === 'user') {
+        video.classList.add('mirror-video');
+      } else {
+        video.classList.remove('mirror-video');
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        fallbackBox.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const constraints = {
+          audio: false,
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 1280 },
+            height: { ideal: 960 }
+          }
+        };
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = mediaStream;
+        fallbackBox.classList.add('hidden');
+      } catch (err) {
+        console.warn('カメラ起動エラー:', err);
+        // 指定した向きで失敗した場合、制約を緩めて再試行
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          video.srcObject = mediaStream;
+          fallbackBox.classList.add('hidden');
+        } catch (err2) {
+          fallbackBox.classList.remove('hidden');
+        }
+      }
+    }
+
+    function stopCameraStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+    }
+
+    async function switchCamera() {
+      AudioEngine.playPop(540);
+      facingMode = (facingMode === 'user') ? 'environment' : 'user';
+      showToast(facingMode === 'user' ? 'じぶんの かお カメラ 🤳' : 'まえの カメラ 📷');
+      await initCamera();
+    }
+
+    /**
+     * 8. 撮影・ファイルアップロード・はなまるフレーム合成
+     */
+    function triggerFlash() {
+      const flash = document.getElementById('flash-overlay');
+      flash.classList.remove('flash-active');
+      void flash.offsetWidth; // リフロー強制
+      flash.classList.add('flash-active');
+    }
+
+    function takePhoto() {
+      const video = document.getElementById('camera-video');
+      if (!video.srcObject || video.readyState < 2) {
+        showToast('「えらぶ」から しゃしんを いれてね！');
+        return;
+      }
+
+      AudioEngine.playShutter();
+      triggerFlash();
+
+      // 撮影した瞬間の映像をオフスクリーンキャンバスへ切り出し
+      const tempCanvas = document.createElement('canvas');
+      const vw = video.videoWidth || 800;
+      const vh = video.videoHeight || 600;
+      tempCanvas.width = vw;
+      tempCanvas.height = vh;
+      const tCtx = tempCanvas.getContext('2d');
+
+      if (facingMode === 'user') {
+        tCtx.translate(vw, 0);
+        tCtx.scale(-1, 1);
+      }
+      tCtx.drawImage(video, 0, 0, vw, vh);
+
+      stopCameraStream();
+      composeDecoratedPhoto(tempCanvas);
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      AudioEngine.playShutter();
+      triggerFlash();
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          stopCameraStream();
+          composeDecoratedPhoto(img);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    function retakePhoto() {
+      AudioEngine.playPop(480);
+      startCameraScreen();
+    }
+
+    /**
+     * 撮影した画像にお題・はなまるスタンプ・カラフルフレームを合成する
+     */
+    function composeDecoratedPhoto(sourceImageOrCanvas) {
+      const canvas = document.getElementById('render-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // 出力サイズは横960px基準（アルバム保存容量と高画質のバランス）
+      const outW = 960;
+      const srcW = sourceImageOrCanvas.width || 960;
+      const srcH = sourceImageOrCanvas.height || 720;
+      const aspect = srcH / srcW;
+      // 極端に縦長・横長になりすぎないよう調整
+      const photoH = Math.min(Math.max(Math.round(outW * aspect), 600), 1100);
+
+      const headerH = 115;
+      const footerH = 85;
+      const borderPad = 24;
+      const outH = headerH + photoH + footerH;
+
+      canvas.width = outW;
+      canvas.height = outH;
+
+      // 1. 背景のカラフルフレーム
+      const grad = ctx.createLinearGradient(0, 0, outW, outH);
+      grad.addColorStop(0, '#FDE047'); // きいろ
+      grad.addColorStop(0.5, '#F9A8D4'); // ピンク
+      grad.addColorStop(1, '#7DD3FC'); // みずいろ
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, outW, outH);
+
+      // ドット模様の装飾
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      for (let x = 20; x < outW; x += 48) {
+        for (let y = 20; y < outH; y += 48) {
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 2. 上部のおだいプレート（白い角丸カード）
+      drawRoundRect(ctx, borderPad, 16, outW - borderPad * 2, headerH - 28, 28, '#FFFFFF', '#F59E0B', 6);
+
+      // おだいテキスト描画
+      ctx.fillStyle = '#1E293B';
+      ctx.font = '900 42px "Zen Maru Gothic", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const titleStr = `${currentPrompt.emoji} おだい：${currentPrompt.text}`;
+      ctx.fillText(titleStr, outW / 2, 16 + (headerH - 28) / 2, outW - 90);
+
+      // 3. メイン写真エリア（角丸クリッピング）
+      const px = borderPad;
+      const py = headerH;
+      const pw = outW - borderPad * 2;
+      const ph = photoH;
+
+      ctx.save();
+      drawRoundRectPath(ctx, px, py, pw, ph, 28);
+      ctx.clip();
+
+      // アスペクト比を保って中央トリミング描画（object-fit: cover相当）
+      const scale = Math.max(pw / srcW, ph / srcH);
+      const drawW = srcW * scale;
+      const drawH = srcH * scale;
+      const drawX = px + (pw - drawW) / 2;
+      const drawY = py + (ph - drawH) / 2;
+      ctx.drawImage(sourceImageOrCanvas, drawX, drawY, drawW, drawH);
+      ctx.restore();
+
+      // 写真の白いフチどり
+      drawRoundRect(ctx, px, py, pw, ph, 28, null, '#FFFFFF', 8);
+
+      // 4. 右下に「はなまる！」手書き風スタンプを描画
+      drawHanamaruStamp(ctx, outW - 135, headerH + photoH - 125);
+
+      // 5. 下部フッターメッセージ（日付と「だいせいこう！」）
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}ねん ${now.getMonth() + 1}がつ ${now.getDate()}にち`;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 32px "Zen Maru Gothic", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.shadowColor = 'rgba(0,0,0,0.25)';
+      ctx.shadowBlur = 6;
+      ctx.fillText('🌟 だいせいこう！', borderPad + 12, headerH + photoH + footerH / 2 + 2);
+
+      ctx.textAlign = 'right';
+      ctx.font = '700 26px "Zen Maru Gothic", sans-serif';
+      ctx.fillText(dateStr, outW - borderPad - 12, headerH + photoH + footerH / 2 + 2);
+      ctx.shadowBlur = 0;
+
+      // JPEG形式で出力（容量軽量化のため品質0.85）
+      latestCompositeDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      document.getElementById('result-image').src = latestCompositeDataUrl;
+
+      // アルバムへ自動保存
+      albumPhotos.unshift({
+        id: Date.now().toString(),
+        dataUrl: latestCompositeDataUrl,
+        prompt: currentPrompt.text,
+        date: dateStr
+      });
+      saveAlbumToStorage();
+
+      // 結果画面を表示
+      showScreen('screen-result');
+      setTimeout(() => AudioEngine.playFanfare(), 200);
+    }
+
+    // 角丸パス生成ヘルパー
+    function drawRoundRectPath(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawRoundRect(ctx, x, y, w, h, r, fillStyle, strokeStyle, lineWidth) {
+      drawRoundRectPath(ctx, x, y, w, h, r);
+      if (fillStyle) {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      }
+      if (strokeStyle) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth || 4;
+        ctx.stroke();
+      }
+    }
+
+    // 赤い「はなまる！」スタンプを描画
+    function drawHanamaruStamp(ctx, cx, cy) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-0.18);
+
+      // 白い丸背景
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 92, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 花びら（もくもく円）
+      ctx.strokeStyle = '#EF4444';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      const petals = 8;
+      for (let i = 0; i < petals; i++) {
+        const angle = (i / petals) * Math.PI * 2;
+        const px = Math.cos(angle) * 68;
+        const py = Math.sin(angle) * 68;
+        ctx.moveTo(px + 22, py);
+        ctx.arc(px, py, 22, 0, Math.PI * 2);
+      }
+      ctx.stroke();
+
+      // ぐるぐる渦巻き
+      ctx.beginPath();
+      for (let t = 0; t < Math.PI * 4.2; t += 0.15) {
+        const r = t * 3.8;
+        const x = Math.cos(t) * r;
+        const y = Math.sin(t) * r;
+        if (t === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // 中央の文字「はなまる！」
+      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeStyle = '#DC2626';
+      ctx.lineWidth = 8;
+      ctx.font = '900 30px "Zen Maru Gothic", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText('はなまる！', 0, 0);
+      ctx.fillText('はなまる！', 0, 0);
+
+      ctx.restore();
+    }
+
+    /**
+     * 9. ダウンロード・アルバム機能
+     */
+    function triggerDownload(dataUrl, filename) {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      AudioEngine.playPop(700);
+      showToast('しゃしんを ほぞん したよ！ 💾');
+    }
+
+    function downloadResultImage() {
+      if (!latestCompositeDataUrl) return;
+      triggerDownload(latestCompositeDataUrl, `odai-camera-${Date.now()}.jpg`);
+    }
+
+    function openAlbum() {
+      AudioEngine.playPop(560);
+      renderAlbumGrid();
+      document.getElementById('modal-album').classList.remove('hidden');
+    }
+
+    function closeAlbum() {
+      AudioEngine.playPop(440);
+      document.getElementById('modal-album').classList.add('hidden');
+    }
+
+    function renderAlbumGrid() {
+      const grid = document.getElementById('album-grid');
+      const empty = document.getElementById('album-empty');
+      grid.innerHTML = '';
+
+      if (albumPhotos.length === 0) {
+        empty.classList.remove('hidden');
+        empty.classList.add('flex');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      empty.classList.remove('flex');
+
+      albumPhotos.forEach(item => {
+        const card = document.createElement('button');
+        card.className = 'btn-pop bg-white p-2 rounded-2xl shadow-md border-2 border-amber-200 flex flex-col items-center text-left overflow-hidden';
+        card.onclick = () => openPhotoDetail(item.id);
+
+        const img = document.createElement('img');
+        img.src = item.dataUrl;
+        img.alt = item.prompt;
+        img.className = 'w-full aspect-square object-cover rounded-xl bg-slate-100';
+
+        const label = document.createElement('div');
+        label.className = 'w-full text-xs sm:text-sm font-black text-slate-700 truncate mt-1.5 px-1';
+        label.textContent = item.prompt;
+
+        card.appendChild(img);
+        card.appendChild(label);
+        grid.appendChild(card);
+      });
+    }
+
+    function openPhotoDetail(id) {
+      const item = albumPhotos.find(p => p.id === id);
+      if (!item) return;
+      AudioEngine.playPop(600);
+      selectedDetailId = id;
+      document.getElementById('detail-img').src = item.dataUrl;
+      document.getElementById('modal-photo-detail').classList.remove('hidden');
+    }
+
+    function closePhotoDetail() {
+      AudioEngine.playPop(440);
+      selectedDetailId = null;
+      document.getElementById('modal-photo-detail').classList.add('hidden');
+    }
+
+    function downloadDetailImage() {
+      const item = albumPhotos.find(p => p.id === selectedDetailId);
+      if (!item) return;
+      triggerDownload(item.dataUrl, `odai-album-${item.id}.jpg`);
+    }
+
+    function deleteDetailImage() {
+      if (!selectedDetailId) return;
+      AudioEngine.playPop(340);
+      albumPhotos = albumPhotos.filter(p => p.id !== selectedDetailId);
+      saveAlbumToStorage();
+      closePhotoDetail();
+      renderAlbumGrid();
+      showToast('しゃしんを けしたよ 🗑️');
+    }
+  </script>
+</body>
+</html>
