@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>わくわく アプリ ランド</title>
+    <!-- Tailwind CSS の読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 丸みがあって子供が読みやすい Google Fonts (Zen Maru Gothic) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 全体のフォント設定と背景のドット模様 */
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background-color: #FFFDF5;
+            background-image: radial-gradient(#FDE68A 2.5px, transparent 2.5px), radial-gradient(#BFDBFE 2.5px, #FFFDF5 2.5px);
+            background-size: 48px 48px;
+            background-position: 0 0, 24px 24px;
+            color: #334155;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ぷにっと弾むアニメーション（ホバー・タップ時） */
+        .puni-card {
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+        }
+        .puni-card:hover {
+            transform: translateY(-6px) scale(1.02);
+        }
+        .puni-card:active {
+            transform: translateY(2px) scale(0.95);
+        }
+
+        /* ぷにっと弾むボタン用 */
+        .puni-btn {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .puni-btn:hover {
+            transform: scale(1.05);
+        }
+        .puni-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* ふわふわ浮くアニメーション（タイトル横のアイコンなど） */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(5deg); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        .animate-float-delay {
+            animation: float 3.5s ease-in-out 1.5s infinite;
+        }
+
+        /* カード登場時のポップアップアニメーション */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.85) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .card-appear {
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative pb-16">
+
+    <!-- ==========================================
+         ヘッダーエリア（タイトル ＆ おとスイッチ）
+         ========================================== -->
+    <header class="w-full max-w-5xl mx-auto px-4 pt-6 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- タイトルロゴ -->
+        <div class="flex items-center gap-3 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full shadow-md border-4 border-amber-300">
+            <span class="text-3xl sm:text-4xl animate-float" aria-hidden="true">🎪</span>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-wider text-amber-500 drop-shadow-sm">
+                わくわく アプリ ランド
+            </h1>
+            <span class="text-3xl sm:text-4xl animate-float-delay" aria-hidden="true">🌟</span>
+        </div>
+
+        <!-- おと（効果音）オン・オフ切り替えボタン -->
+        <button id="soundToggleBtn" onclick="toggleSound()" 
+                class="puni-btn flex items-center gap-2 bg-white px-5 py-3 rounded-full shadow-md border-4 border-sky-300 text-sky-600 font-bold text-lg cursor-pointer"
+                aria-label="おとの きりかえ">
+            <span id="soundIcon" class="text-2xl">🔊</span>
+            <span id="soundText">おと：オン</span>
+        </button>
+    </header>
+
+    <!-- ==========================================
+         メインコンテンツ（フィルタ ＆ アプリ一覧）
+         ========================================== -->
+    <main class="w-full max-w-5xl mx-auto px-4 flex-grow">
+        
+        <!-- フィルタボタン（カテゴリ切り替え） -->
+        <nav class="flex flex-wrap justify-center gap-3 sm:gap-4 my-4 sm:my-6" aria-label="あそびかたを えらぶ">
+            <button onclick="setFilter('all')" data-filter="all"
+                    class="filter-btn puni-btn px-6 py-3 rounded-full font-black text-lg sm:text-xl shadow-md border-4 transition-all cursor-pointer bg-amber-400 text-white border-amber-500">
+                🌈 ぜんぶ
+            </button>
+            <button onclick="setFilter('outdoor')" data-filter="outdoor"
+                    class="filter-btn puni-btn px-6 py-3 rounded-full font-black text-lg sm:text-xl shadow-md border-4 transition-all cursor-pointer bg-white text-emerald-600 border-emerald-300">
+                🌳 おそとで あそぶ
+            </button>
+            <button onclick="setFilter('indoor')" data-filter="indoor"
+                    class="filter-btn puni-btn px-6 py-3 rounded-full font-black text-lg sm:text-xl shadow-md border-4 transition-all cursor-pointer bg-white text-rose-500 border-rose-300">
+                🏠 おうちで あそぶ
+            </button>
+        </nav>
+
+        <!-- アプリカードのグリッド表示エリア -->
+        <div id="appGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 mt-6">
+            <!-- JavaScript でここにカードが自動生成されます -->
+        </div>
+
+    </main>
+
+    <!-- ==========================================
+         カスタムメッセージボックス（準備中アプリタップ時など）
+         ※ alert() の代わりに使用する子供向けポップアップ
+         ========================================== -->
+    <div id="messageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4" onclick="closeMessageModal(event)">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center border-8 border-amber-300 shadow-2xl transform transition-all scale-95" id="messageModalBox" onclick="event.stopPropagation()">
+            <div id="modalEmoji" class="text-6xl mb-4 animate-bounce">🚧</div>
+            <h2 id="modalTitle" class="text-2xl sm:text-3xl font-black text-slate-700 mb-3">じゅんびちゅう だよ！</h2>
+            <p id="modalDesc" class="text-lg sm:text-xl font-bold text-slate-500 mb-6 leading-relaxed">
+                いま いっしょうけんめい つくっているよ。<br>もうちょっと まっててね！
+            </p>
+            <button onclick="closeMessageModal()" class="puni-btn w-full py-4 bg-amber-400 hover:bg-amber-500 text-white font-black text-xl rounded-2xl shadow-lg border-b-4 border-amber-600 cursor-pointer">
+                わかった！
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         保護者向け設定ガイド（右下の小さなボタン ＆ モーダル）
+         ========================================== -->
+    <div class="fixed bottom-3 right-3 z-40">
+        <button onclick="openParentModal()" 
+                class="bg-slate-200/80 hover:bg-slate-300 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm border border-slate-300 transition cursor-pointer">
+            ⚙️ おとなよう：リンクの かえかた
+        </button>
+    </div>
+
+    <!-- 保護者向けヘルプモーダル -->
+    <div id="parentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4" onclick="closeParentModal(event)">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl border-2 border-slate-300 text-slate-700" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>🛠️</span> 保護者向け：アプリの追加・リンク設定ガイド
+                </h2>
+                <button onclick="closeParentModal()" class="text-slate-400 hover:text-slate-600 font-bold text-xl px-2 cursor-pointer">✕</button>
+            </div>
+            
+            <div class="space-y-4 text-sm leading-relaxed">
+                <p>このポータル画面は、GitHub Pages でそのまま公開できる 1ファイル完結型（<code>index.html</code>）です。</p>
+                
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h3 class="font-bold text-slate-800 mb-2">📁 おすすめの GitHub リポジトリ構成</h3>
+                    <pre class="bg-slate-800 text-emerald-300 p-3 rounded-lg text-xs overflow-x-auto">
+my-kids-apps/          （リポジトリのルート）
+├── index.html         （★このメニュー画面のファイル）
+├── bingo/
+│   └── index.html     （しぜんの たからもの ビンゴ）
+├── photohunt/
+│   └── index.html     （どこだ？ おうち フォトハント）
+└── odaigame/
+    └── index.html     （カメラで おだい ゲーム）</pre>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-slate-800 mb-1">✏️ アプリの追加・URLの変更方法</h3>
+                    <p>この <code>index.html</code> をメモ帳やエディタで開き、スクリプト内の <strong><code>const APPS = [ ... ];</code></strong> の部分を書き換えるだけで、カードの追加やリンク先の変更ができます。</p>
+                    <ul class="list-disc list-inside mt-2 space-y-1 text-slate-600">
+                        <li><code>url</code>：各アプリのパス（例：<code>'./bingo/index.html'</code>）を指定します。</li>
+                        <li><code>comingSoon</code>：<code>true</code> にすると「じゅんびちゅう」バッジが付き、タップ時に案内メッセージが出ます。公開時は <code>false</code> にしてください。</li>
+                        <li><code>tags</code>：<code>'outdoor'</code>（おそと）や <code>'indoor'</code>（おうち）を設定すると上のボタンで絞り込めます。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-6 text-right">
+                <button onclick="closeParentModal()" class="px-5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl text-sm cursor-pointer">
+                    とじる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         JavaScript ロジック ＆ アプリデータ設定
+         ========================================== -->
+    <script>
+        /**
+         * ====================================================================
+         * 【保護者・開発者向け 設定エリア】
+         * 以下の APPS 配列を編集するだけで、メニューのカードを追加・変更できます。
+         * 
+         * - id: 重複しない半角英数字
+         * - title: アプリの名前（子供が読めるよう ひらがな・カタカナ推奨）
+         * - description: アプリのせつめい文
+         * - emojis: カードに表示する絵文字（2つ並べるのがおすすめ）
+         * - url: リンク先のURL（同じリポジトリ内のフォルダなら './フォルダ名/index.html'）
+         * - tags: フィルタ用のタグ配列（'outdoor' = おそとで あそぶ, 'indoor' = おうちで あそぶ）
+         * - theme: カードの色テーマ（'green', 'pink', 'blue', 'purple', 'orange' から選択）
+         * - comingSoon: true にすると「じゅんびちゅう」になり、リンクに飛ばなくなります
+         * ====================================================================
+         */
+        const APPS = [
+            {
+                id: 'nature-bingo',
+                title: 'しぜんの たからもの ビンゴ',
+                description: 'おそとで はっぱや むしを さがそう！',
+                emojis: '🌿🐞',
+                url: './bingo/index.html',
+                tags: ['outdoor'],
+                theme: 'green',
+                comingSoon: false
+            },
+            {
+                id: 'photo-hunt',
+                title: 'どこだ？ おうち フォトハント',
+                description: 'おうちの なかの たからを カメラで みつけよう！',
+                emojis: '🏠📸',
+                url: './photohunt/index.html',
+                tags: ['indoor'],
+                theme: 'pink',
+                comingSoon: false
+            },
+            {
+                id: 'odai-camera',
+                title: 'カメラで おだい ゲーム',
+                description: 'でた おだいの ポーズや ものを とろう！',
+                emojis: '🎲✨',
+                url: './odaigame/index.html',
+                tags: ['indoor', 'outdoor'], // おうちでも おそとでも 遊べる設定
+                theme: 'blue',
+                comingSoon: false
+            },
+            {
+                id: 'next-game',
+                title: 'あたらしい ゲーム',
+                description: 'つぎの アプリを おたのしみに！',
+                emojis: '🚀🎨',
+                url: '#',
+                tags: ['indoor', 'outdoor'],
+                theme: 'purple',
+                comingSoon: true // じゅんびちゅうバッジを表示
+            }
+        ];
+
+        // カラーテーマごとのTailwindクラス定義（パステル＆ビビッド）
+        const THEMES = {
+            green: {
+                bg: 'bg-emerald-50',
+                border: 'border-emerald-300',
+                iconBg: 'bg-emerald-200/70',
+                titleText: 'text-emerald-700',
+                btnBg: 'bg-emerald-400 hover:bg-emerald-500 border-emerald-600',
+                tagBg: 'bg-emerald-100 text-emerald-700'
+            },
+            pink: {
+                bg: 'bg-rose-50',
+                border: 'border-rose-300',
+                iconBg: 'bg-rose-200/70',
+                titleText: 'text-rose-700',
+                btnBg: 'bg-rose-400 hover:bg-rose-500 border-rose-600',
+                tagBg: 'bg-rose-100 text-rose-700'
+            },
+            blue: {
+                bg: 'bg-sky-50',
+                border: 'border-sky-300',
+                iconBg: 'bg-sky-200/70',
+                titleText: 'text-sky-700',
+                btnBg: 'bg-sky-400 hover:bg-sky-500 border-sky-600',
+                tagBg: 'bg-sky-100 text-sky-700'
+            },
+            purple: {
+                bg: 'bg-purple-50',
+                border: 'border-purple-300',
+                iconBg: 'bg-purple-200/70',
+                titleText: 'text-purple-700',
+                btnBg: 'bg-purple-400 hover:bg-purple-500 border-purple-600',
+                tagBg: 'bg-purple-100 text-purple-700'
+            },
+            orange: {
+                bg: 'bg-orange-50',
+                border: 'border-orange-300',
+                iconBg: 'bg-orange-200/70',
+                titleText: 'text-orange-700',
+                btnBg: 'bg-orange-400 hover:bg-orange-500 border-orange-600',
+                tagBg: 'bg-orange-100 text-orange-700'
+            }
+        };
+
+        // 現在のフィルタ状態と効果音状態
+        let currentFilter = 'all';
+        let isSoundOn = true;
+        let audioCtx = null;
+
+        /**
+         * Web Audio API を使った軽快な効果音ジェネレーター
+         * 外部の音声ファイル不要で、ブラウザだけでポップな音を鳴らします
+         */
+        function playSound(type = 'pop') {
+            if (!isSoundOn) return;
+            try {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'pop') {
+                    // フィルタ切り替えやボタンタップ時の「ぷにっ」という音
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(780, now + 0.12);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.13);
+                } else if (type === 'start') {
+                    // アプリ起動時の「ピロリン♪」というワクワクする和音
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);       // ド
+                    osc.frequency.setValueAtTime(659.25, now + 0.08); // ミ
+                    osc.frequency.setValueAtTime(783.99, now + 0.16); // ソ
+                    osc.frequency.setValueAtTime(1046.50, now + 0.24); // 高いド
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.46);
+                } else if (type === 'boing') {
+                    // 準備中アプリをタップした時の「ポヨン」という音
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(180, now + 0.15);
+                    osc.frequency.exponentialRampToValueAtTime(350, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.32);
+                    osc.start(now);
+                    osc.stop(now + 0.33);
+                }
+            } catch (e) {
+                console.warn('Audio playback failed:', e);
+            }
+        }
+
+        /**
+         * おとの オン / オフ 切り替え
+         */
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            const btn = document.getElementById('soundToggleBtn');
+
+            if (isSoundOn) {
+                icon.textContent = '🔊';
+                text.textContent = 'おと：オン';
+                btn.classList.remove('border-slate-300', 'text-slate-400');
+                btn.classList.add('border-sky-300', 'text-sky-600');
+                playSound('pop');
+            } else {
+                icon.textContent = '🔇';
+                text.textContent = 'おと：オフ';
+                btn.classList.remove('border-sky-300', 'text-sky-600');
+                btn.classList.add('border-slate-300', 'text-slate-400');
+            }
+        }
+
+        /**
+         * フィルタボタンの切り替えと再描画
+         */
+        function setFilter(filter) {
+            playSound('pop');
+            currentFilter = filter;
+
+            // ボタンの見た目を更新
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const btnFilter = btn.getAttribute('data-filter');
+                if (btnFilter === filter) {
+                    // 選択中のスタイル
+                    btn.classList.remove('bg-white', 'text-emerald-600', 'border-emerald-300', 'text-rose-500', 'border-rose-300');
+                    if (filter === 'all') {
+                        btn.classList.add('bg-amber-400', 'text-white', 'border-amber-500');
+                    } else if (filter === 'outdoor') {
+                        btn.classList.add('bg-emerald-400', 'text-white', 'border-emerald-500');
+                    } else if (filter === 'indoor') {
+                        btn.classList.add('bg-rose-400', 'text-white', 'border-rose-500');
+                    }
+                } else {
+                    // 非選択のスタイル
+                    btn.classList.remove('bg-amber-400', 'bg-emerald-400', 'bg-rose-400', 'text-white', 'border-amber-500', 'border-emerald-500', 'border-rose-500');
+                    btn.classList.add('bg-white');
+                    if (btnFilter === 'all') btn.classList.add('text-amber-500', 'border-amber-300');
+                    if (btnFilter === 'outdoor') btn.classList.add('text-emerald-600', 'border-emerald-300');
+                    if (btnFilter === 'indoor') btn.classList.add('text-rose-500', 'border-rose-300');
+                }
+            });
+
+            renderApps();
+        }
+
+        /**
+         * アプリカード一覧の描画
+         */
+        function renderApps() {
+            const grid = document.getElementById('appGrid');
+            grid.innerHTML = '';
+
+            // フィルタ条件に合うアプリを抽出
+            const filteredApps = APPS.filter(app => {
+                if (currentFilter === 'all') return true;
+                return app.tags && app.tags.includes(currentFilter);
+            });
+
+            filteredApps.forEach((app, index) => {
+                const theme = THEMES[app.theme] || THEMES.green;
+                const delay = index * 0.08; // 順番にポンポンと表示される遅延
+
+                // タグバッジのHTML作成
+                let tagBadges = '';
+                if (app.tags.includes('outdoor')) {
+                    tagBadges += `<span class="text-xs sm:text-sm font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">🌳 おそと</span>`;
+                }
+                if (app.tags.includes('indoor')) {
+                    tagBadges += `<span class="text-xs sm:text-sm font-bold px-3 py-1 rounded-full bg-rose-100 text-rose-700">🏠 おうち</span>`;
+                }
+
+                // 準備中バッジ
+                const comingSoonBadge = app.comingSoon 
+                    ? `<div class="absolute -top-3 -right-2 bg-amber-400 text-white font-black text-sm sm:text-base px-4 py-1.5 rounded-full shadow-md border-2 border-white transform rotate-3">
+                         🚧 じゅんびちゅう
+                       </div>`
+                    : '';
+
+                // カード要素の作成
+                const card = document.createElement('div');
+                card.style.animationDelay = `${delay}s`;
+                card.className = `card-appear opacity-0 puni-card relative flex flex-col justify-between p-6 sm:p-7 rounded-[2rem] border-4 ${theme.bg} ${theme.border} shadow-lg cursor-pointer ${app.comingSoon ? 'opacity-90' : ''}`;
+                
+                // カード全体をタップしたときの動作
+                card.onclick = () => handleAppClick(app);
+
+                card.innerHTML = `
+                    ${comingSoonBadge}
+                    
+                    <div>
+                        <!-- 上部：絵文字アイコン ＆ タグ -->
+                        <div class="flex items-start justify-between gap-2 mb-4">
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 ${theme.iconBg} rounded-3xl flex items-center justify-center text-4xl sm:text-5xl shadow-inner border-2 border-white">
+                                ${app.emojis}
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 justify-end">
+                                ${tagBadges}
+                            </div>
+                        </div>
+
+                        <!-- アプリタイトル -->
+                        <h2 class="text-2xl sm:text-3xl font-black ${theme.titleText} mb-2 leading-snug">
+                            ${app.title}${app.comingSoon ? '（じゅんびちゅう）' : ''}
+                        </h2>
+
+                        <!-- アプリせつめい -->
+                        <p class="text-base sm:text-lg font-bold text-slate-600 mb-6 leading-relaxed">
+                            ${app.description}
+                        </p>
+                    </div>
+
+                    <!-- 下部：あそぶボタン -->
+                    <div class="mt-auto">
+                        ${app.comingSoon 
+                            ? `<div class="w-full py-3.5 bg-slate-300 text-slate-600 font-black text-xl rounded-2xl text-center border-b-4 border-slate-400">
+                                 もうちょっと まってね
+                               </div>`
+                            : `<div class="w-full py-3.5 ${theme.btnBg} text-white font-black text-xl sm:text-2xl rounded-2xl text-center shadow-md border-b-4 flex items-center justify-center gap-2">
+                                 <span>▶</span> あそぶ！
+                               </div>`
+                        }
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        /**
+         * アプリカードをクリックしたときの処理
+         */
+        function handleAppClick(app) {
+            if (app.comingSoon) {
+                playSound('boing');
+                openMessageModal(
+                    app.emojis,
+                    'じゅんびちゅう だよ！',
+                    `「${app.title}」は いま つくっているよ。<br>たのしみに まっててね！`
+                );
+                return;
+            }
+
+            // 効果音を鳴らしてから少しだけ待ってページ遷移（音を聞かせるため）
+            playSound('start');
+            setTimeout(() => {
+                window.location.href = app.url;
+            }, 320);
+        }
+
+        /**
+         * 子供向けメッセージモーダルの開閉
+         */
+        function openMessageModal(emoji, title, desc) {
+            document.getElementById('modalEmoji').textContent = emoji;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalDesc').innerHTML = desc;
+            
+            const modal = document.getElementById('messageModal');
+            const box = document.getElementById('messageModalBox');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeMessageModal() {
+            playSound('pop');
+            const modal = document.getElementById('messageModal');
+            const box = document.getElementById('messageModalBox');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 150);
+        }
+
+        /**
+         * 保護者向けモーダルの開閉
+         */
+        function openParentModal() {
+            const modal = document.getElementById('parentModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeParentModal() {
+            const modal = document.getElementById('parentModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // 初期表示の実行
+        window.addEventListener('DOMContentLoaded', () => {
+            renderApps();
+        });
+    </script>
+</body>
+</html>
