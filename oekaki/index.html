@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>お絵描きルーレット！かお・ぜんしん・どうぶつ</title>
+    <style>
+        /* =========================================
+           リセット＆ベースデザイン（パステル＆ポップ）
+        ========================================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-main: #fffbeb;
+            --bg-dot: #fde68a;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #475569;
+            --border-dark: #222222;
+            --accent-primary: #f59e0b;
+            --accent-secondary: #3b82f6;
+            --accent-soft: #fef3c7;
+            --shadow-pop: 0 5px 0 #222222;
+            --shadow-pop-sm: 0 3px 0 #222222;
+        }
+
+        /* テーマ別カラーパレット */
+        body.theme-face {
+            --bg-main: #fffbeb;
+            --bg-dot: #fde68a;
+            --accent-primary: #f59e0b;
+            --accent-secondary: #ec4899;
+            --accent-soft: #fef3c7;
+        }
+
+        body.theme-body {
+            --bg-main: #f0f9ff;
+            --bg-dot: #bae6fd;
+            --accent-primary: #0ea5e9;
+            --accent-secondary: #f97316;
+            --accent-soft: #e0f2fe;
+        }
+
+        body.theme-animal {
+            --bg-main: #f0fdf4;
+            --bg-dot: #bbf7d0;
+            --accent-primary: #10b981;
+            --accent-secondary: #8b5cf6;
+            --accent-soft: #d1fae5;
+        }
+
+        body {
+            font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Yu Gothic", "Meiryo", sans-serif;
+            background-color: var(--bg-main);
+            background-image: radial-gradient(var(--bg-dot) 2px, transparent 2px);
+            background-size: 22px 22px;
+            color: var(--text-main);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            user-select: none;
+            transition: background-color 0.25s ease;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 12px 18px;
+        }
+
+        /* =========================================
+           最上部：アプリヘッダー＆音切り替え
+        ========================================= */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            gap: 6px;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .brand-title h1 {
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: var(--text-main);
+            text-shadow: 1.5px 1.5px 0 #fff;
+            letter-spacing: -0.02em;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .pill-btn {
+            background: #fff;
+            border: 2.5px solid var(--border-dark);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-family: inherit;
+            font-size: 0.76rem;
+            font-weight: 900;
+            color: var(--text-main);
+            box-shadow: var(--shadow-pop-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: transform 0.08s, box-shadow 0.08s;
+        }
+
+        .pill-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
+        /* =========================================
+           3大テーマ切り替えタブ
+        ========================================= */
+        .theme-switcher {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .theme-tab {
+            background: #ffffff;
+            border: 2.5px solid var(--border-dark);
+            border-radius: 16px;
+            padding: 8px 4px;
+            font-family: inherit;
+            font-size: 0.84rem;
+            font-weight: 900;
+            color: var(--text-sub);
+            box-shadow: var(--shadow-pop-sm);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            transition: all 0.12s ease;
+        }
+
+        .theme-tab .emoji {
+            font-size: 1.25rem;
+            line-height: 1.1;
+        }
+
+        .theme-tab.active {
+            background: var(--accent-primary);
+            color: #ffffff;
+            text-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .theme-tab:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
+        /* =========================================
+           サブタブ（プレイモード切り替え）
+        ========================================= */
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            background: var(--accent-soft);
+            padding: 4px;
+            border-radius: 14px;
+            border: 2.5px solid var(--border-dark);
+            margin-bottom: 9px;
+        }
+
+        .mode-btn {
+            border: 2px solid transparent;
+            background: transparent;
+            padding: 7px 4px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 900;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
+        .mode-btn.active {
+            background: #ffffff;
+            border-color: var(--border-dark);
+            box-shadow: 0 2px 0 var(--border-dark);
+        }
+
+        /* =========================================
+           特典バナー（ふたつ名 / しんしゅずかん）
+        ========================================= */
+        .bonus-banner {
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-soft) 100%);
+            border: 2.5px solid var(--border-dark);
+            border-radius: 16px;
+            padding: 7px 10px;
+            margin-bottom: 9px;
+            box-shadow: var(--shadow-pop-sm);
+        }
+
+        .bonus-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .bonus-badge {
+            background: var(--accent-secondary);
+            color: #fff;
+            font-size: 0.66rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1.5px solid var(--border-dark);
+        }
+
+        .bonus-rarity {
+            font-size: 0.74rem;
+            font-weight: 900;
+            color: #d97706;
+        }
+
+        .bonus-main-text {
+            font-size: 0.98rem;
+            font-weight: 900;
+            color: var(--text-main);
+            text-align: center;
+            line-height: 1.3;
+            margin: 2px 0;
+        }
+
+        .bonus-sub-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 3px;
+        }
+
+        .bonus-chip {
+            background: #fff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 1px 8px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--text-sub);
+        }
+
+        /* =========================================
+           1. ステップモード（1つずつめくる）
+        ========================================= */
+        .step-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .step-nav {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin-bottom: 9px;
+        }
+
+        .step-pill {
+            background: #fff;
+            border: 2px solid var(--border-dark);
+            border-radius: 10px;
+            padding: 5px 1px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 0.62rem;
+            font-weight: 900;
+            color: var(--text-sub);
+            cursor: pointer;
+            line-height: 1.15;
+            transition: transform 0.1s;
+        }
+
+        .step-pill.active {
+            background: var(--accent-primary);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 0 var(--border-dark);
+        }
+
+        .step-pill.done:not(.active) {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* 大きな見本カード */
+        .big-card {
+            flex: 1;
+            background: var(--card-bg);
+            border: 3px solid var(--border-dark);
+            border-radius: 24px;
+            box-shadow: 0 6px 0 var(--border-dark);
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            min-height: 265px;
+        }
+
+        .big-card-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cat-pill {
+            padding: 4px 12px;
+            border-radius: 999px;
+            border: 2px solid var(--border-dark);
+            font-size: 0.85rem;
+            font-weight: 900;
+            background: var(--accent-soft);
+        }
+
+        .count-pill {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-sub);
+            background: #f1f5f9;
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1.5px solid #cbd5e1;
+        }
+
+        .big-svg-stage {
+            width: 170px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border-radius: 20px;
+            border: 2.5px dashed #94a3b8;
+            margin: 4px 0;
+        }
+
+        .big-svg-stage svg {
+            width: 140px;
+            height: 140px;
+        }
+
+        .big-part-info {
+            width: 100%;
+            text-align: center;
+        }
+
+        .big-part-name {
+            font-size: 1.28rem;
+            font-weight: 900;
+            color: var(--text-main);
+            line-height: 1.25;
+        }
+
+        .big-part-hint {
+            display: inline-block;
+            margin-top: 5px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: var(--text-main);
+            background: var(--accent-soft);
+            padding: 4px 12px;
+            border-radius: 999px;
+        }
+
+        /* ステップモード操作ボタン */
+        .step-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .roll-main-btn {
+            width: 100%;
+            background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+            border: 3px solid var(--border-dark);
+            border-radius: 18px;
+            padding: 13px 14px;
+            font-family: inherit;
+            font-size: 1.12rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-pop);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.08s, box-shadow 0.08s;
+        }
+
+        .roll-main-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 var(--border-dark);
+        }
+
+        .roll-main-btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .step-nav-row {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            background: #fff;
+            border: 2.5px solid var(--border-dark);
+            border-radius: 14px;
+            padding: 10px 10px;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 900;
+            color: var(--text-main);
+            box-shadow: var(--shadow-pop-sm);
+            cursor: pointer;
+        }
+
+        .nav-btn.next {
+            background: var(--accent-primary);
+            color: #fff;
+            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+        }
+
+        .nav-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* =========================================
+           2. まとめていちらんモード（グリッド表示）
+        ========================================= */
+        .all-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .parts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .mini-card {
+            background: #ffffff;
+            border: 2.5px solid var(--border-dark);
+            border-radius: 18px;
+            box-shadow: var(--shadow-pop-sm);
+            padding: 6px 7px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .mini-card.locked {
+            background: #fef9c3;
+            border-color: #d97706;
+        }
+
+        .mini-top {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .mini-cat {
+            font-size: 0.64rem;
+            font-weight: 900;
+            padding: 2px 7px;
+            border-radius: 999px;
+            border: 1.5px solid var(--border-dark);
+            background: var(--accent-soft);
+        }
+
+        .lock-btn {
+            background: #f1f5f9;
+            border: 1.5px solid var(--border-dark);
+            border-radius: 8px;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 0.64rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .mini-card.locked .lock-btn {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        .mini-svg-box {
+            width: 100%;
+            height: 74px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .mini-svg-box svg {
+            width: 72px;
+            height: 72px;
+        }
+
+        .mini-bottom {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .mini-name {
+            flex: 1;
+            font-size: 0.74rem;
+            font-weight: 900;
+            color: var(--text-main);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .reroll-btn {
+            background: var(--accent-soft);
+            border: 1.5px solid var(--border-dark);
+            border-radius: 8px;
+            width: 26px;
+            height: 24px;
+            font-size: 0.78rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            box-shadow: 0 1.5px 0 var(--border-dark);
+        }
+
+        .reroll-btn:active {
+            transform: translateY(1.5px);
+            box-shadow: none;
+        }
+
+        .reroll-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .shuffle-all-btn {
+            width: 100%;
+            background: linear-gradient(180deg, #fb7185 0%, #f43f5e 100%);
+            border: 3px solid var(--border-dark);
+            border-radius: 18px;
+            padding: 13px 14px;
+            font-family: inherit;
+            font-size: 1.08rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.25);
+            box-shadow: var(--shadow-pop);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.08s, box-shadow 0.08s;
+        }
+
+        .shuffle-all-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 var(--border-dark);
+        }
+
+        /* =========================================
+           アニメーション＆ユーティリティ
+        ========================================= */
+        @keyframes popIn {
+            0% { transform: scale(0.75); opacity: 0.4; }
+            65% { transform: scale(1.08); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-pop {
+            animation: popIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes wobble {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-4deg); }
+            75% { transform: rotate(4deg); }
+        }
+
+        .spinning {
+            animation: wobble 0.13s infinite;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* あそびかたモーダル */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .modal-box {
+            background: #fff;
+            border: 3px solid var(--border-dark);
+            border-radius: 22px;
+            box-shadow: 0 6px 0 var(--border-dark);
+            max-width: 400px;
+            width: 100%;
+            padding: 18px;
+        }
+
+        .modal-box h2 {
+            font-size: 1.06rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .modal-box ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 14px;
+            line-height: 1.45;
+        }
+
+        .modal-box li {
+            background: #f8fafc;
+            padding: 7px 10px;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+        }
+
+        .modal-close-btn {
+            width: 100%;
+            background: var(--accent-primary);
+            color: #fff;
+            border: 2.5px solid var(--border-dark);
+            border-radius: 12px;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.94rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: var(--shadow-pop-sm);
+        }
+    </style>
+</head>
+<body class="theme-face">
+
+<div class="app-container">
+    <!-- 最上部バー -->
+    <header class="top-bar">
+        <div class="brand-title">
+            <span style="font-size: 1.35rem;">🎨🎲</span>
+            <h1>お絵描きルーレット！</h1>
+        </div>
+        <div class="top-actions">
+            <button id="sound-btn" class="pill-btn" onclick="toggleSound()" aria-label="効果音切り替え">
+                <span id="sound-icon">🔊</span>
+                <span id="sound-label">おと ON</span>
+            </button>
+            <button class="pill-btn" onclick="openHelp()" aria-label="あそびかた">
+                <span>❓ あそびかた</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 3大テーマ切り替えタブ -->
+    <nav class="theme-switcher" aria-label="テーマ選択">
+        <button id="theme-btn-face" class="theme-tab active" onclick="switchTheme('face')">
+            <span class="emoji">😊</span>
+            <span>かおづくり</span>
+        </button>
+        <button id="theme-btn-body" class="theme-tab" onclick="switchTheme('body')">
+            <span class="emoji">🧍</span>
+            <span>ぜんしん</span>
+        </button>
+        <button id="theme-btn-animal" class="theme-tab" onclick="switchTheme('animal')">
+            <span class="emoji">🐉</span>
+            <span>どうぶつ</span>
+        </button>
+    </nav>
+
+    <!-- サブタブ（2つのプレイモード） -->
+    <div class="mode-tabs" role="tablist">
+        <button id="mode-btn-step" class="mode-btn active" onclick="switchMode('step')">
+            👆 1つずつめくる
+        </button>
+        <button id="mode-btn-all" class="mode-btn" onclick="switchMode('all')">
+            🎲 まとめていちらん
+        </button>
+    </div>
+
+    <!-- 特典バナー（ぜんしんの「ふたつ名」 / どうぶつの「しんしゅずかん」） -->
+    <section id="bonus-banner" class="bonus-banner hidden" aria-live="polite">
+        <div class="bonus-top">
+            <span id="bonus-badge" class="bonus-badge">✨ おだいテーマ</span>
+            <span id="bonus-rarity" class="bonus-rarity"></span>
+        </div>
+        <div id="bonus-main-text" class="bonus-main-text"></div>
+        <div id="bonus-sub-row" class="bonus-sub-row"></div>
+    </section>
+
+    <!-- =====================================
+         1. ステップモード（1つずつめくる）
+    ===================================== -->
+    <main id="view-step" class="step-view">
+        <!-- 1〜6のステップ進捗インジケーター -->
+        <div id="step-nav" class="step-nav"></div>
+
+        <!-- 大きなパーツカード -->
+        <div class="big-card">
+            <div class="big-card-header">
+                <span id="big-cat-pill" class="cat-pill">① りんかく</span>
+                <span id="big-count-pill" class="count-pill">全10しゅるい</span>
+            </div>
+
+            <div id="big-svg-stage" class="big-svg-stage"></div>
+
+            <div class="big-part-info">
+                <div id="big-part-name" class="big-part-name">ボタンをおしてね！</div>
+                <div id="big-part-hint" class="big-part-hint">ルーレットをまわして パーツを きめよう！</div>
+            </div>
+        </div>
+
+        <!-- 下部アクションボタン -->
+        <div class="step-controls">
+            <button id="roll-step-btn" class="roll-main-btn" onclick="spinCurrentStep()">
+                <span>🎲</span>
+                <span id="roll-step-label">ルーレットをまわす！</span>
+            </button>
+
+            <div class="step-nav-row">
+                <button id="prev-step-btn" class="nav-btn" onclick="moveStep(-1)">
+                    ⬅ まえへ
+                </button>
+                <button id="next-step-btn" class="nav-btn next" onclick="moveStep(1)">
+                    つぎのパーツへ ➡
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- =====================================
+         2. まとめていちらんモード（グリッド一斉抽選）
+    ===================================== -->
+    <main id="view-all" class="all-view hidden">
+        <div id="parts-grid" class="parts-grid"></div>
+
+        <button id="shuffle-all-btn" class="shuffle-all-btn" onclick="spinAllInTheme()">
+            <span>🎲</span>
+            <span>ぜんぶまとめてシャッフル！</span>
+        </button>
+    </main>
+</div>
+
+<!-- あそびかたモーダル -->
+<div id="help-modal" class="modal-backdrop hidden" onclick="closeHelp()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h2>🎨 お絵描きルーレットのあそびかた</h2>
+        <ul>
+            <li>📝 <strong>かみとペン</strong>をよういしよう！うえのタブから「😊かおづくり」「🧍ぜんしん」「🐉どうぶつ」のすきなテーマをえらんでね！</li>
+            <li>👆 <strong>「1つずつめくる」</strong>では、1ばんから6ばんまで じゅんばんに ルーレットを まわして、でた パーツを かみに かきたしていくよ！</li>
+            <li>🎲 <strong>「まとめていちらん」</strong>では、6つの パーツを いっきに きめられるよ。きにいったら「🔒キープ」して のこりを 引き直せるよ！</li>
+            <li>✨ ぜんぶ そろうと「ぜんしん」では<strong>ふたつ名</strong>、「どうぶつ」では<strong>しんしゅずかん</strong>が でてくるよ！</li>
+        </ul>
+        <button class="modal-close-btn" onclick="closeHelp()">わかった！あそぶ！</button>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * 3大テーマ × 6カテゴリ = 合計216種類のオリジナル線画SVGデータベース
+ * すべて viewBox="0 0 120 120" / stroke="#222" / 太めのくっきり線画で統一
+ * ============================================================================
+ */
+const THEMES = {
+    /* ========================================================================
+       テーマ①：😊 かおづくり（全72種）
+    ======================================================================== */
+    face: {
+        id: 'face',
+        title: 'かおづくり',
+        categories: [
+            {
+                step: '①', short: 'りんかく', full: '① りんかく',
+                items: [
+                    { name: 'まるがお', hint: 'コンパスみたいに まんまるに かこう！', svg: `<circle cx="60" cy="60" r="40" fill="#fff" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'たまごがた', hint: 'うえが ほそくて しもぶくれの たまごがた！', svg: `<path d="M60,18 C84,18 94,45 94,68 C94,88 79,102 60,102 C41,102 26,88 26,68 C26,45 36,18 60,18 Z" fill="#fff" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'しかくがお', hint: 'かどを すこし まるくした しかく！', svg: `<rect x="24" y="22" width="72" height="76" rx="14" fill="#fff" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'さんかく（おにぎり）', hint: 'ふっくら おいしい おにぎりの かたち！', svg: `<path d="M60,20 C72,20 100,66 96,86 C92,98 28,98 24,86 C20,66 48,20 60,20 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ほしがた', hint: 'キラキラ おほしさまの りんかく！', svg: `<polygon points="60,14 73,42 104,46 81,67 87,98 60,82 33,98 39,67 16,46 47,42" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ハートがた', hint: 'おおきな ハートの かたちに かこう！', svg: `<path d="M60,100 C60,100 18,72 18,44 C18,27 31,18 44,24 C52,28 60,38 60,38 C60,38 68,28 76,24 C89,18 102,27 102,44 C102,72 60,100 60,100 Z" fill="#ffe4e6" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ひょうたんがた', hint: 'まんなかが キュッと くびれた かたち！', svg: `<path d="M60,16 C78,16 84,32 76,48 C72,56 72,62 78,70 C90,86 80,104 60,104 C40,104 30,86 42,70 C48,62 48,56 44,48 C36,32 42,16 60,16 Z" fill="#fff" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'くもがた', hint: 'もくもく ふわふわの くもの りんかく！', svg: `<path d="M34,88 C18,88 16,66 28,58 C22,40 38,24 54,32 C64,20 84,22 88,36 C104,36 108,58 94,68 C100,82 88,96 72,92 C62,102 42,100 34,88 Z" fill="#e0f2fe" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ロボット（かくばり）', hint: 'みみに ネジが ついた ロボットの かお！', svg: `<rect x="26" y="24" width="68" height="72" rx="6" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><rect x="16" y="48" width="10" height="24" rx="2" fill="#94a3b8" stroke="#222" stroke-width="3"/><rect x="94" y="48" width="10" height="24" rx="2" fill="#94a3b8" stroke="#222" stroke-width="3"/>` },
+                    { name: 'しずくがた', hint: 'あまつぶ みたいな しずくの かたち！', svg: `<path d="M60,16 C60,16 96,56 96,76 C96,94 80,104 60,104 C40,104 24,94 24,76 C24,56 60,16 60,16 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` }
+                ]
+            },
+            {
+                step: '②', short: 'まゆとめ', full: '② まゆとめ',
+                items: [
+                    { name: 'ぱっちりおめめ', hint: 'くろめの なかに 白い ひかりを かこう！', svg: `<path d="M24,34 Q36,26 48,34" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><path d="M72,34 Q84,26 96,34" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><circle cx="36" cy="62" r="16" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="36" cy="62" r="8" fill="#222"/><circle cx="32" cy="57" r="3.5" fill="#fff"/><circle cx="84" cy="62" r="16" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="84" cy="62" r="8" fill="#222"/><circle cx="80" cy="57" r="3.5" fill="#fff"/>` },
+                    { name: 'にっこりめ', hint: 'やまがたの 線で にっこり わらおう！', svg: `<path d="M24,38 Q36,28 48,38" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><path d="M72,38 Q84,28 96,38" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><path d="M22,68 Q36,46 50,68" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M70,68 Q84,46 98,68" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/>` },
+                    { name: 'きりっとつりめ', hint: 'まゆげと 目を ななめうえに きりっと！', svg: `<line x1="22" y1="34" x2="48" y2="48" stroke="#222" stroke-width="4" stroke-linecap="round"/><line x1="98" y1="34" x2="72" y2="48" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M22,56 L48,66 Q34,80 22,56 Z" fill="#222"/><path d="M98,56 L72,66 Q86,80 98,56 Z" fill="#222"/>` },
+                    { name: 'たれめ', hint: 'やさしそうに 目じりを さげて かこう！', svg: `<line x1="22" y1="44" x2="46" y2="34" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><line x1="98" y1="44" x2="74" y2="34" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><path d="M22,58 Q36,76 50,62" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M70,62 Q84,76 98,58" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><circle cx="36" cy="61" r="5" fill="#222"/><circle cx="84" cy="61" r="5" fill="#222"/>` },
+                    { name: 'まるめがね', hint: 'まんまる レンズの めがねを かけよう！', svg: `<circle cx="36" cy="60" r="18" fill="#e0f2fe" stroke="#222" stroke-width="3.5"/><circle cx="84" cy="60" r="18" fill="#e0f2fe" stroke="#222" stroke-width="3.5"/><line x1="54" y1="60" x2="66" y2="60" stroke="#222" stroke-width="3.5"/><circle cx="36" cy="60" r="4" fill="#222"/><circle cx="84" cy="60" r="4" fill="#222"/>` },
+                    { name: 'サングラス', hint: 'まっくろ レンズの かっこいい サングラス！', svg: `<path d="M18,48 L54,48 L50,72 Q36,78 22,72 Z" fill="#222" stroke="#222" stroke-width="3" stroke-linejoin="round"/><path d="M66,48 L102,48 L98,72 Q84,78 70,72 Z" fill="#222" stroke="#222" stroke-width="3" stroke-linejoin="round"/><line x1="54" y1="52" x2="66" y2="52" stroke="#222" stroke-width="4"/><line x1="26" y1="54" x2="34" y2="66" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="74" y1="54" x2="82" y2="66" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>` },
+                    { name: 'ほしめ', hint: 'おほしさまが キラッと かがやく おめめ！', svg: `<polygon points="36,36 41,51 57,52 45,62 49,77 36,68 23,77 27,62 15,52 31,51" fill="#fef08a" stroke="#222" stroke-width="3" stroke-linejoin="round"/><polygon points="84,36 89,51 105,52 93,62 97,77 84,68 71,77 75,62 63,52 79,51" fill="#fef08a" stroke="#222" stroke-width="3" stroke-linejoin="round"/>` },
+                    { name: 'ハートめ', hint: 'だいすき！ハートの おめめを かこう！', svg: `<path d="M36,76 C36,76 18,62 18,50 C18,42 25,38 31,42 C34,44 36,48 36,48 C36,48 38,44 41,42 C47,38 54,42 54,50 C54,62 36,76 36,76 Z" fill="#fda4af" stroke="#222" stroke-width="3"/><path d="M84,76 C84,76 66,62 66,50 C66,42 73,38 79,42 C82,44 84,48 84,48 C84,48 86,44 89,42 C95,38 102,42 102,50 C102,62 84,76 84,76 Z" fill="#fda4af" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ねむそう（はんめ）', hint: 'まぶたが とろ〜んと おちた ねむい目！', svg: `<line x1="18" y1="54" x2="52" y2="54" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M23,54 A12,12 0 0,0 47,54" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="35" cy="58" r="4.5" fill="#222"/><line x1="68" y1="54" x2="102" y2="54" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M73,54 A12,12 0 0,0 97,54" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="85" cy="58" r="4.5" fill="#222"/>` },
+                    { name: 'ウインク', hint: 'かたほうは ぱっちり、もうかたほうは パチッ！', svg: `<circle cx="36" cy="60" r="13" fill="#222"/><circle cx="31" cy="55" r="4" fill="#fff"/><polyline points="72,48 94,60 72,72" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'ぐるぐるめ', hint: 'うずまき ぐるぐるの めまい目！', svg: `<path d="M36,60 C36,55 42,55 42,60 C42,67 30,67 30,59 C30,48 48,48 48,60 C48,74 24,74 24,59" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><path d="M84,60 C84,55 90,55 90,60 C90,67 78,67 78,59 C78,48 96,48 96,60 C96,74 72,74 72,59" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'ロボットバイザー', hint: 'よこながの ゴーグルみたいな ロボットの目！', svg: `<rect x="18" y="46" width="84" height="26" rx="13" fill="#38bdf8" stroke="#222" stroke-width="3.5"/><line x1="34" y1="55" x2="56" y2="55" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><circle cx="84" cy="59" r="4" fill="#fef08a"/>` },
+                    { name: 'まつげバッチリ', hint: 'ながい まつげを 3ぼんずつ かこう！', svg: `<circle cx="36" cy="62" r="14" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="36" cy="62" r="6" fill="#222"/><line x1="25" y1="51" x2="18" y2="41" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><line x1="36" y1="48" x2="36" y2="37" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><line x1="47" y1="51" x2="54" y2="41" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><circle cx="84" cy="62" r="14" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="84" cy="62" r="6" fill="#222"/><line x1="73" y1="51" x2="66" y2="41" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><line x1="84" y1="48" x2="84" y2="37" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><line x1="95" y1="51" x2="102" y2="41" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'げじげじまゆ＆まるめ', hint: 'ふとーい まゆげと まんまる おめめ！', svg: `<path d="M20,42 L50,46 L48,34 L22,31 Z" fill="#222"/><path d="M100,42 L70,46 L72,34 L98,31 Z" fill="#222"/><circle cx="36" cy="64" r="11" fill="#222"/><circle cx="32" cy="60" r="3" fill="#fff"/><circle cx="84" cy="64" r="11" fill="#222"/><circle cx="80" cy="60" r="3" fill="#fff"/>` }
+                ]
+            },
+            {
+                step: '③', short: 'はな', full: '③ はな',
+                items: [
+                    { name: 'ちょこんとてん', hint: 'まんなかに 小さく ちょこんと かこう！', svg: `<circle cx="60" cy="60" r="6" fill="#222"/>` },
+                    { name: 'さんかくはな', hint: 'さんかくの おはなを かこう！', svg: `<polygon points="60,42 44,72 76,72" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'まるいピエロはな', hint: 'まっかな まんまる おはな！', svg: `<circle cx="60" cy="60" r="18" fill="#f43f5e" stroke="#222" stroke-width="3.5"/><circle cx="53" cy="53" r="4.5" fill="#fff"/>` },
+                    { name: 'ぶたっぱな', hint: 'だえんの中に はなのあなを 2つ！', svg: `<ellipse cx="60" cy="60" rx="22" ry="15" fill="#fecdd3" stroke="#222" stroke-width="3.5"/><circle cx="52" cy="60" r="4.5" fill="#222"/><circle cx="68" cy="60" r="4.5" fill="#222"/>` },
+                    { name: 'ながいはな（てんぐ）', hint: 'よこに びよーんと ながい はな！', svg: `<path d="M46,42 L94,54 C102,56 102,66 94,68 L46,68" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'ネコのひげ＆はな', hint: 'ちいさな はなと 3ぼんの ヒゲ！', svg: `<polygon points="60,64 53,55 67,55" fill="#fda4af" stroke="#222" stroke-width="2.5"/><line x1="18" y1="52" x2="40" y2="56" stroke="#222" stroke-width="3" stroke-linecap="round"/><line x1="18" y1="66" x2="40" y2="64" stroke="#222" stroke-width="3" stroke-linecap="round"/><line x1="102" y1="52" x2="80" y2="56" stroke="#222" stroke-width="3" stroke-linecap="round"/><line x1="102" y1="66" x2="80" y2="64" stroke="#222" stroke-width="3" stroke-linecap="round"/>` },
+                    { name: 'ぞうのながいはな', hint: 'したに ながく のびて さきが くるん！', svg: `<path d="M52,32 L52,82 C52,96 78,96 78,80 C78,70 66,70 66,78" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/>` },
+                    { name: 'くちばし', hint: 'とりさん みたいな きいろい くちばし！', svg: `<polygon points="60,38 88,60 60,82 32,60" fill="#facc15" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="32" y1="60" x2="88" y2="60" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ばんそうこうつき', hint: 'おはなに ばんそうこうを ペタッ！', svg: `<polyline points="56,36 50,66 66,66" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="44" y="54" width="32" height="12" rx="4" transform="rotate(-18 60 60)" fill="#fde68a" stroke="#222" stroke-width="2.8"/>` },
+                    { name: 'ハートのはな', hint: 'かわいい ハートがたの おはな！', svg: `<path d="M60,76 C60,76 40,62 40,50 C40,42 47,38 53,42 C57,44 60,48 60,48 C60,48 63,44 67,42 C73,38 80,42 80,50 C80,62 60,76 60,76 Z" fill="#fb7185" stroke="#222" stroke-width="3.2"/>` }
+                ]
+            },
+            {
+                step: '④', short: 'くち', full: '④ くち',
+                items: [
+                    { name: 'にっこりえがお', hint: 'おおきく カーブして にっこり！', svg: `<path d="M28,48 Q60,86 92,48" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/>` },
+                    { name: 'おおきくあけたお口', hint: '「あーっ！」と おおきく あけた おくち！', svg: `<path d="M28,42 L92,42 Q88,84 60,84 Q32,84 28,42 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M42,76 Q60,64 78,76" fill="none" stroke="#222" stroke-width="3"/>` },
+                    { name: 'わはは（歯みえ）', hint: '白い 歯を みせて ニカッと わらおう！', svg: `<rect x="28" y="46" width="64" height="28" rx="14" fill="#fff" stroke="#222" stroke-width="3.5"/><line x1="28" y1="60" x2="92" y2="60" stroke="#222" stroke-width="3"/><line x1="46" y1="46" x2="46" y2="74" stroke="#222" stroke-width="2.5"/><line x1="60" y1="46" x2="60" y2="74" stroke="#222" stroke-width="2.5"/><line x1="74" y1="46" x2="74" y2="74" stroke="#222" stroke-width="2.5"/>` },
+                    { name: '「お」のくち', hint: 'びっくりした ときの まるい おくち！', svg: `<ellipse cx="60" cy="60" rx="16" ry="22" fill="#fda4af" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'ねこくち（ω）', hint: 'ひらがなの「ω」みたいに かこう！', svg: `<path d="M30,52 C30,70 58,70 60,52 C62,70 90,70 90,52" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/>` },
+                    { name: 'ぺろっとしただし', hint: 'あかんべー！と ベロを だそう！', svg: `<path d="M28,48 Q60,66 92,48" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M50,56 L50,76 C50,86 70,86 70,76 L70,54" fill="#fda4af" stroke="#222" stroke-width="3.5"/><line x1="60" y1="58" x2="60" y2="74" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ギザギザきば', hint: 'かいじゅう みたいな ギザギザの 歯！', svg: `<path d="M26,44 L94,44 L88,76 L32,76 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polyline points="30,44 40,62 50,44 60,62 70,44 80,62 90,44" fill="none" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ひげつきくち', hint: 'りっぱな おひげの したに おくち！', svg: `<path d="M60,52 C50,40 28,42 24,58 C36,60 50,58 60,52 Z" fill="#222"/><path d="M60,52 C70,40 92,42 96,58 C84,60 70,58 60,52 Z" fill="#222"/><path d="M48,68 Q60,76 72,68" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'チュッ（たこくち）', hint: 'くちびるを チューッと とがらせよう！', svg: `<path d="M50,42 Q60,36 68,45 Q74,53 62,57 Q74,62 66,71 Q56,77 50,68" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'ふくれっつら', hint: 'ぷんぷん！ほっぺを ふくらませて へのかっぱ！', svg: `<path d="M32,68 Q60,44 88,68" fill="none" stroke="#222" stroke-width="4.2" stroke-linecap="round"/><path d="M26,56 Q20,64 26,72" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round"/><path d="M94,56 Q100,64 94,72" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round"/>` },
+                    { name: 'ニヤリわらう', hint: 'かたほうだけ クイッと 上げて ニヤリ！', svg: `<path d="M32,64 Q64,74 88,46" fill="none" stroke="#222" stroke-width="4.2" stroke-linecap="round"/><line x1="82" y1="42" x2="94" y2="52" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'よだれ・あわ', hint: 'おいしいものを みて よだれが たら〜り！', svg: `<path d="M32,52 Q60,68 88,52" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M74,58 L74,78 C74,84 82,84 82,78 L82,55" fill="#bae6fd" stroke="#222" stroke-width="3"/><circle cx="32" cy="70" r="5" fill="#e0f2fe" stroke="#222" stroke-width="2.5"/>` }
+                ]
+            },
+            {
+                step: '⑤', short: 'かみがた', full: '⑤ かみがた',
+                items: [
+                    { name: 'さらさらボブ', hint: 'おかっぱ みたいに きれいに そろった 髪！', svg: `<path d="M24,86 L28,42 C30,22 90,22 92,42 L96,86 L78,86 L78,52 L42,52 L42,86 Z" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ツンツンつんつん', hint: 'トゲトゲに 逆立った 元気な 髪！', svg: `<polyline points="22,68 30,26 46,50 60,16 74,50 90,26 98,68" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>` },
+                    { name: 'くるくるアフロ', hint: 'まんまる もこもこ おおきな アフロ！', svg: `<path d="M28,74 C14,68 14,42 30,36 C30,18 48,14 60,22 C72,14 90,18 90,36 C106,42 106,68 92,74" fill="#fde047" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'ツインテール', hint: 'りょうわきで ぴょこんと むすんだ 髪！', svg: `<path d="M32,60 Q60,34 88,60" fill="none" stroke="#222" stroke-width="3.5"/><path d="M32,48 C12,36 8,70 22,86 C28,74 30,60 32,52 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M88,48 C108,36 112,70 98,86 C92,74 90,60 88,52 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ポニーテール', hint: 'うしろで ひとつに まとめた 元気な 髪！', svg: `<path d="M30,68 Q60,36 90,68" fill="none" stroke="#222" stroke-width="3.5"/><path d="M74,40 C94,24 108,46 96,74 C88,60 82,48 74,44 Z" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="74" cy="42" r="5" fill="#f43f5e" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'おだんごあたま', hint: 'あたまの うえに まるい おだんごが 2つ！', svg: `<circle cx="34" cy="36" r="14" fill="#fed7aa" stroke="#222" stroke-width="3.5"/><circle cx="86" cy="36" r="14" fill="#fed7aa" stroke="#222" stroke-width="3.5"/><path d="M32,68 Q60,40 88,68" fill="none" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'モヒカン', hint: 'まんなか だけが 高く とがった 髪！', svg: `<path d="M46,66 L42,16 L60,28 L78,16 L74,66 Z" fill="#f43f5e" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'リーゼント', hint: 'まえがみが ぐいーんと 前に つきでた 髪！', svg: `<path d="M32,76 C24,50 38,20 72,18 C98,16 104,36 86,48 C74,56 56,52 48,62" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'おかっぱ（ぱっつん）', hint: 'まえがみを まっすぐ ぱっつんに そろえよう！', svg: `<path d="M26,80 L30,36 C32,20 88,20 90,36 L94,80" fill="none" stroke="#222" stroke-width="3.5"/><rect x="34" y="34" width="52" height="16" fill="#222"/>` },
+                    { name: '長髪ウェーブ', hint: 'なみなみ ゆるふわの ながーい 髪！', svg: `<path d="M30,46 C18,58 28,74 18,92" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M90,46 C102,58 92,74 102,92" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><path d="M30,46 Q60,22 90,46" fill="none" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'はげちゃびん（1ほんげ）', hint: 'ツルツル頭に 1本だけ ぴょこんと 髪！', svg: `<path d="M28,78 Q60,44 92,78" fill="none" stroke="#222" stroke-width="3.5"/><path d="M60,58 C60,36 70,22 78,28 C84,32 70,40 60,36" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'きのこカット', hint: 'まるい キノコの かさ みたいな マッシュヘア！', svg: `<path d="M22,64 C22,24 98,24 98,64 Z" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: '三つ編み', hint: 'りょうわきに おさげの 三つ編みを たらそう！', svg: `<path d="M32,54 Q60,30 88,54" fill="none" stroke="#222" stroke-width="3.5"/><ellipse cx="26" cy="62" rx="6" ry="8" fill="#fed7aa" stroke="#222" stroke-width="3"/><ellipse cx="26" cy="76" rx="6" ry="8" fill="#fed7aa" stroke="#222" stroke-width="3"/><ellipse cx="94" cy="62" rx="6" ry="8" fill="#fed7aa" stroke="#222" stroke-width="3"/><ellipse cx="94" cy="76" rx="6" ry="8" fill="#fed7aa" stroke="#222" stroke-width="3"/>` },
+                    { name: '炎みたいな髪', hint: 'メラメラ もえる ほのお みたいな 髪！', svg: `<path d="M30,74 C24,52 38,38 42,24 C48,34 56,22 60,14 C66,24 74,34 80,22 C84,38 96,52 90,74" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` }
+                ]
+            },
+            {
+                step: '⑥', short: 'プラスα', full: '⑥ プラスα',
+                items: [
+                    { name: 'おうかん', hint: 'あたまの うえに キラキラ おうかん！', svg: `<polygon points="28,76 24,34 44,54 60,24 76,54 96,34 92,76" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="60" cy="62" r="5" fill="#f43f5e"/>` },
+                    { name: 'うさみみ', hint: 'ぴょこんと ながい うさぎの おみみ！', svg: `<ellipse cx="42" cy="54" rx="11" ry="34" transform="rotate(-10 42 54)" fill="#fff" stroke="#222" stroke-width="3.5"/><ellipse cx="78" cy="54" rx="11" ry="34" transform="rotate(10 78 54)" fill="#fff" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'ねこみみ', hint: 'さんかくの かわいい ネコみみ！', svg: `<polygon points="24,78 32,32 54,68" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="96,78 88,32 66,68" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'つの（おに）', hint: 'しましまの オニの ツノを かこう！', svg: `<polygon points="32,78 38,28 54,74" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="88,78 82,28 66,74" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="36" y1="54" x2="48" y2="54" stroke="#222" stroke-width="3"/><line x1="72" y1="54" x2="84" y2="54" stroke="#222" stroke-width="3"/>` },
+                    { name: 'リボン', hint: 'おおきな リボンを つけよう！', svg: `<polygon points="60,60 28,38 28,82" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="60,60 92,38 92,82" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="60" cy="60" r="9" fill="#fb7185" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'ぼうし（キャップ）', hint: 'つばが ついた かっこいい ぼうし！', svg: `<path d="M28,68 C28,38 86,38 86,68 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5"/><path d="M28,68 L106,68 C106,76 84,76 74,72" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'まほうつかいぼうし', hint: 'さきが とがった とんがり ぼうし！', svg: `<polygon points="60,18 32,74 88,74" fill="#e0e7ff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><ellipse cx="60" cy="74" rx="42" ry="9" fill="#c7d2fe" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'ほっぺにハート', hint: 'ほっぺたに かわいい ハートの マーク！', svg: `<path d="M34,74 C34,74 20,64 20,54 C20,48 26,45 30,48 C32,50 34,53 34,53 C34,53 36,50 38,48 C42,45 48,48 48,54 C48,64 34,74 34,74 Z" fill="#fda4af" stroke="#222" stroke-width="3"/><path d="M86,74 C86,74 72,64 72,54 C72,48 78,45 82,48 C84,50 86,53 86,53 C86,53 88,50 90,48 C94,45 100,48 100,54 C100,64 86,74 86,74 Z" fill="#fda4af" stroke="#222" stroke-width="3"/>` },
+                    { name: 'そばかす', hint: 'ほっぺに てんてんてん と そばかす！', svg: `<circle cx="30" cy="54" r="3.5" fill="#222"/><circle cx="42" cy="60" r="3.5" fill="#222"/><circle cx="28" cy="68" r="3.5" fill="#222"/><circle cx="90" cy="54" r="3.5" fill="#222"/><circle cx="78" cy="60" r="3.5" fill="#222"/><circle cx="92" cy="68" r="3.5" fill="#222"/>` },
+                    { name: 'ヘッドホン', hint: 'おんがくを きく おおきな ヘッドホン！', svg: `<path d="M26,68 C26,30 94,30 94,68" fill="none" stroke="#222" stroke-width="4.5"/><rect x="16" y="54" width="16" height="30" rx="7" fill="#bae6fd" stroke="#222" stroke-width="3.5"/><rect x="88" y="54" width="16" height="30" rx="7" fill="#bae6fd" stroke="#222" stroke-width="3.5"/>` },
+                    { name: '天使のわっか', hint: 'あたまの うえに ピカッと わっかが うかんでる！', svg: `<ellipse cx="60" cy="48" rx="34" ry="12" fill="none" stroke="#facc15" stroke-width="6"/><ellipse cx="60" cy="48" rx="34" ry="12" fill="none" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ひげ（サンタ風）', hint: 'ふわふわ 白い サンタさんの おひげ！', svg: `<path d="M26,54 C24,84 44,98 60,100 C76,98 96,84 94,54 Q76,66 60,58 Q44,66 26,54 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` }
+                ]
+            }
+        ]
+    },
+
+    /* ========================================================================
+       テーマ②：🧍 ぜんしんキャラ（全72種 ＋ ふたつ名バナー）
+    ======================================================================== */
+    body: {
+        id: 'body',
+        title: 'ぜんしん',
+        categories: [
+            {
+                step: '①', short: 'あたま', full: '① あたま・かお',
+                items: [
+                    { name: 'げんきなこども', adj: 'げんきいっぱい', hint: 'にっこり 笑顔の あたまを 上のほうに かこう！', svg: `<circle cx="60" cy="62" r="32" fill="#fff" stroke="#222" stroke-width="3.5"/><path d="M32,54 Q60,34 88,54" fill="none" stroke="#222" stroke-width="3.5"/><circle cx="49" cy="60" r="3.5" fill="#222"/><circle cx="71" cy="60" r="3.5" fill="#222"/><path d="M50,72 Q60,82 70,72" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'ねこみみキャラ', adj: 'にゃんこ耳の', hint: 'さんかくの ネコみみと ヒゲを かこう！', svg: `<polygon points="32,48 30,20 52,36" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="88,48 90,20 68,36" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="60" cy="66" r="30" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="49" cy="62" r="3.5" fill="#222"/><circle cx="71" cy="62" r="3.5" fill="#222"/><path d="M52,72 Q56,77 60,72 Q64,77 68,72" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round"/>` },
+                    { name: 'ロボットヘッド', adj: 'ブリキの', hint: 'アンテナが ついた 四角い ロボットの あたま！', svg: `<line x1="60" y1="28" x2="60" y2="14" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="12" r="4.5" fill="#facc15" stroke="#222" stroke-width="2.5"/><rect x="30" y="28" width="60" height="58" rx="8" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><circle cx="46" cy="50" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/><circle cx="74" cy="50" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/><rect x="44" y="68" width="32" height="9" rx="3" fill="#fff" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'おうかんの王さま', adj: '王さま気分の', hint: 'キラキラ おうかんを かぶった かお！', svg: `<polygon points="38,34 34,14 48,24 60,12 72,24 86,14 82,34" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><circle cx="60" cy="66" r="30" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="62" r="3.5" fill="#222"/><circle cx="70" cy="62" r="3.5" fill="#222"/><path d="M51,74 Q60,82 69,74" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'まほうつかい帽子', adj: 'ふしぎな魔力の', hint: '大きな とんがりぼうしを かぶらせよう！', svg: `<polygon points="60,12 32,48 88,48" fill="#e0e7ff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><ellipse cx="60" cy="48" rx="40" ry="8" fill="#c7d2fe" stroke="#222" stroke-width="3.2"/><path d="M36,52 A24,24 0 0,0 84,52" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="51" cy="62" r="3.5" fill="#222"/><circle cx="69" cy="62" r="3.5" fill="#222"/>` },
+                    { name: 'にんじゃ頭巾', adj: 'にんぽうを使う', hint: '目だけ みえる にんじゃの ずきん！', svg: `<circle cx="60" cy="62" r="32" fill="#334155" stroke="#222" stroke-width="3.5"/><rect x="36" y="48" width="48" height="20" rx="10" fill="#fef3c7" stroke="#222" stroke-width="3"/><line x1="44" y1="56" x2="54" y2="59" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><line x1="76" y1="56" x2="66" y2="59" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'うちゅうふくヘルメット', adj: '宇宙を旅する', hint: 'まるい ガラスの ヘルメットを かぶろう！', svg: `<circle cx="60" cy="60" r="36" fill="#f8fafc" stroke="#222" stroke-width="3.5"/><rect x="34" y="40" width="52" height="36" rx="16" fill="#bae6fd" stroke="#222" stroke-width="3.2"/><circle cx="50" cy="58" r="3.5" fill="#222"/><circle cx="70" cy="58" r="3.5" fill="#222"/>` },
+                    { name: 'おにのツノ', adj: 'ガオーッと元気な', hint: 'あたまに 2ほんの ツノと もじゃもじゃ髪！', svg: `<polygon points="38,38 32,16 50,32" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><polygon points="82,38 88,16 70,32" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><circle cx="60" cy="66" r="30" fill="#fecdd3" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="62" r="3.5" fill="#222"/><circle cx="70" cy="62" r="3.5" fill="#222"/><path d="M50,76 Q60,70 70,76" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'うさぎフード', adj: 'ぴょんぴょん跳ねる', hint: 'ながい おみみの うさぎフードを かぶろう！', svg: `<ellipse cx="44" cy="30" rx="8" ry="22" fill="#fff" stroke="#222" stroke-width="3.5"/><ellipse cx="76" cy="30" rx="8" ry="22" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="68" r="28" fill="#ffe4e6" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="70" r="20" fill="#fff" stroke="#222" stroke-width="2.8"/><circle cx="53" cy="68" r="3" fill="#222"/><circle cx="67" cy="68" r="3" fill="#222"/>` },
+                    { name: 'ライオンたてがみ', adj: '百獣の王の', hint: 'ふわふわ たてがみに かこまれた かお！', svg: `<circle cx="60" cy="60" r="38" fill="#fde047" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="62" r="23" fill="#fff" stroke="#222" stroke-width="3.2"/><circle cx="51" cy="58" r="3.2" fill="#222"/><circle cx="69" cy="58" r="3.2" fill="#222"/><path d="M52,70 Q60,76 68,70" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'てんしのわっか', adj: 'やさしい天使の', hint: 'あたまの うえに ピカッと わっかが うかぶよ！', svg: `<ellipse cx="60" cy="22" rx="22" ry="7" fill="none" stroke="#facc15" stroke-width="4.5"/><circle cx="60" cy="64" r="30" fill="#fff" stroke="#222" stroke-width="3.5"/><path d="M46,60 Q50,54 54,60" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><path d="M66,60 Q70,54 74,60" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><path d="M53,72 Q60,78 67,72" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'かいぞくぼうし', adj: '大海原の', hint: 'おおきな 海賊（かいぞく）ぼうしを かぶろう！', svg: `<path d="M22,48 Q60,14 98,48 L88,54 Q60,44 32,54 Z" fill="#334155" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="60" cy="36" r="5" fill="#fff"/><path d="M36,54 A24,24 0 0,0 84,54" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="64" r="3.5" fill="#222"/><circle cx="70" cy="64" r="4.5" fill="#222"/>` }
+                ]
+            },
+            {
+                step: '②', short: 'からだ', full: '② からだ・ふく',
+                items: [
+                    { name: 'Tシャツ＆ズボン', label: 'Tシャツ＆ズボン', hint: 'おほしさま マークの Tシャツと ズボン！', svg: `<path d="M40,22 L80,22 L94,40 L82,48 L78,40 L78,66 L42,66 L42,40 L38,48 L26,40 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M42,66 L78,66 L80,96 L64,96 L60,78 L56,96 L40,96 Z" fill="#334155" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ひらひらワンピース', label: 'ワンピース', hint: 'すそが ひらひら 広がった ワンピース！', svg: `<path d="M46,22 L74,22 L94,94 L26,94 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="38" y1="54" x2="82" y2="54" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ヒーローマント', label: 'ヒーローマント', hint: 'うしろに 赤い マントが なびく ヒーロースーツ！', svg: `<path d="M36,24 L84,24 L100,94 L20,94 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><rect x="42" y="24" width="36" height="58" rx="6" fill="#bae6fd" stroke="#222" stroke-width="3.5"/><polygon points="60,36 64,46 74,47 66,54 68,64 60,58 52,64 54,54 46,47 56,46" fill="#fef08a" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'よろい（ナイト）', label: 'よろい', hint: 'ピカピカの かたい よろいを 着せよう！', svg: `<polygon points="34,24 86,24 80,74 40,74" fill="#e2e8f0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="60" cy="48" r="10" fill="#fef08a" stroke="#222" stroke-width="3"/><rect x="42" y="74" width="36" height="18" rx="4" fill="#cbd5e1" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'にんじゃふく', label: 'にんじゃふく', hint: 'たすきがけを した かっこいい にんじゃふく！', svg: `<path d="M40,22 L80,22 L84,94 L36,94 Z" fill="#334155" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="42" y1="24" x2="78" y2="64" stroke="#f43f5e" stroke-width="5"/><line x1="78" y1="24" x2="42" y2="64" stroke="#f43f5e" stroke-width="5"/><rect x="38" y="60" width="44" height="10" fill="#f43f5e" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'うちゅうふく', label: 'うちゅうふく', hint: 'むねに ボタンが ついた 白い うちゅうふく！', svg: `<rect x="36" y="22" width="48" height="72" rx="16" fill="#fff" stroke="#222" stroke-width="3.5"/><rect x="46" y="36" width="28" height="22" rx="4" fill="#e2e8f0" stroke="#222" stroke-width="3"/><circle cx="54" cy="45" r="3" fill="#f43f5e"/><circle cx="66" cy="45" r="3" fill="#10b981"/>` },
+                    { name: 'コックさんふく', label: 'コックさんふく', hint: 'ボタンが 2列に ならんだ コックさんの ふく！', svg: `<rect x="38" y="22" width="44" height="72" rx="8" fill="#fff" stroke="#222" stroke-width="3.5"/><line x1="60" y1="22" x2="60" y2="70" stroke="#222" stroke-width="3"/><circle cx="52" cy="38" r="3" fill="#222"/><circle cx="68" cy="38" r="3" fill="#222"/><circle cx="52" cy="54" r="3" fill="#222"/><circle cx="68" cy="54" r="3" fill="#222"/>` },
+                    { name: 'おいしゃさん白衣', label: '白衣（はくい）', hint: 'ポケットに ペンが ささった 白衣を かこう！', svg: `<path d="M38,22 L82,22 L86,96 L34,96 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polyline points="48,22 60,46 72,22" fill="none" stroke="#222" stroke-width="3"/><rect x="64" y="54" width="14" height="16" rx="2" fill="#bae6fd" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'きもの（ゆかた）', label: 'きもの', hint: 'ふとい おびを まいた わふうの きもの！', svg: `<path d="M40,22 L80,22 L84,96 L36,96 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polyline points="46,22 62,48 74,22" fill="none" stroke="#222" stroke-width="3.2"/><rect x="37" y="54" width="46" height="16" fill="#fda4af" stroke="#222" stroke-width="3"/>` },
+                    { name: 'オーバーオール', label: 'オーバーオール', hint: 'つりズボンの オーバーオールを 着せよう！', svg: `<rect x="40" y="24" width="40" height="40" rx="6" fill="#fef08a" stroke="#222" stroke-width="3.2"/><path d="M42,42 L78,42 L80,96 L64,96 L60,76 L56,96 L40,96 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="48" y1="24" x2="48" y2="44" stroke="#222" stroke-width="4.5"/><line x1="72" y1="24" x2="72" y2="44" stroke="#222" stroke-width="4.5"/>` },
+                    { name: 'もこもこ着ぐるみ', label: '着ぐるみ', hint: '雲みたいに モコモコした かわいい 着ぐるみ！', svg: `<path d="M38,32 C26,32 24,48 34,56 C24,66 28,88 44,88 C52,98 68,98 76,88 C92,88 96,66 86,56 C96,48 94,32 82,32 C74,20 46,20 38,32 Z" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ドレス', label: 'お姫さまドレス', hint: 'ふんわり 大きく ひろがった お姫さまドレス！', svg: `<path d="M48,22 L72,22 L68,48 L100,96 L20,96 L52,48 Z" fill="#fbcfe8" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M26,86 Q44,78 60,86 Q76,78 94,86" fill="none" stroke="#222" stroke-width="3"/>` },
+                    { name: 'スポーツユニフォーム', label: 'ユニフォーム', hint: 'せばんごう「1」の スポーツユニフォーム！', svg: `<path d="M40,22 L80,22 L92,40 L80,48 L76,38 L76,68 L44,68 L44,38 L40,48 L28,40 Z" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><text x="60" y="56" text-anchor="middle" font-size="22" font-weight="900" fill="#222">1</text><path d="M44,68 L76,68 L78,94 L62,94 L60,80 L58,94 L42,94 Z" fill="#38bdf8" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ロボットボディ', label: 'ロボットボディ', hint: 'メーターや ボタンが ついた メカの からだ！', svg: `<rect x="34" y="24" width="52" height="66" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><rect x="44" y="36" width="32" height="22" rx="4" fill="#fff" stroke="#222" stroke-width="3"/><polyline points="48,48 54,42 60,52 66,40 72,48" fill="none" stroke="#f43f5e" stroke-width="3" stroke-linecap="round"/>` }
+                ]
+            },
+            {
+                step: '③', short: 'うで', full: '③ うで・ポーズ',
+                items: [
+                    { name: 'ばんざい！', hint: 'りょうてを 上に ぴーんと 上げて ばんざい！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,54 C28,44 20,28 24,18" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="24" cy="18" r="6" fill="#fef08a" stroke="#222" stroke-width="3"/><path d="M74,54 C92,44 100,28 96,18" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="96" cy="18" r="6" fill="#fef08a" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ピースサイン', hint: '指を 2ほん たてて イェイ！と ピース！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="46,54 26,60 24,42" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="38" x2="18" y2="26" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><line x1="27" y1="38" x2="30" y2="26" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><polyline points="74,54 94,60 96,42" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="93" y1="38" x2="90" y2="26" stroke="#222" stroke-width="3.2" stroke-linecap="round"/><line x1="99" y1="38" x2="102" y2="26" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'こしに手をあてる', hint: 'りょうてを こしに あてて エッヘン！', svg: `<rect x="46" y="42" width="28" height="48" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="46,48 24,62 46,74" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="74,48 96,62 74,74" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'うでぐみ', hint: 'むねの まえで うでを 組んで キリッ！', svg: `<rect x="44" y="40" width="32" height="50" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M44,48 L30,62 L78,62" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M76,48 L90,68 L42,68" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'バイバイ手をふる', hint: 'かたほうの 手を 高く あげて バイバーイ！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,54 L32,82" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M74,54 Q92,42 96,24" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="96" cy="22" r="6" fill="#fef08a" stroke="#222" stroke-width="3"/><path d="M86,18 Q84,26 88,30" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"/><path d="M106,18 Q108,26 104,30" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>` },
+                    { name: 'ガッツポーズ', hint: 'こぶしを ぎゅっと にぎって やったー！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="46,54 24,62 28,38" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="28" cy="34" r="7" fill="#fda4af" stroke="#222" stroke-width="3"/><polyline points="74,54 96,62 92,38" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="92" cy="34" r="7" fill="#fda4af" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ひこうきポーズ（りょうて広げ）', hint: 'りょうてを よこに 大きく ひろげて ブーン！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="46" y1="54" x2="14" y2="48" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="14" cy="48" r="5.5" fill="#fef08a" stroke="#222" stroke-width="2.8"/><line x1="74" y1="54" x2="106" y2="48" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="106" cy="48" r="5.5" fill="#fef08a" stroke="#222" stroke-width="2.8"/>` },
+                    { name: 'まほうのポーズ', hint: '手のひらから キラキラ まほうを 出そう！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,54 L26,48" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M74,54 L94,48" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><polygon points="20,30 22,36 28,36 23,40 25,46 20,42 15,46 17,40 12,36 18,36" fill="#fef08a" stroke="#222" stroke-width="2"/><polygon points="100,30 102,36 108,36 103,40 105,46 100,42 95,46 97,40 92,36 98,36" fill="#fef08a" stroke="#222" stroke-width="2"/>` },
+                    { name: 'ねこパンチ', hint: 'まるい ネコの手で ニャーッと パンチ！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="46,54 30,62 32,46" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="32" cy="42" r="9" fill="#fed7aa" stroke="#222" stroke-width="3"/><polyline points="74,54 90,62 88,46" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="88" cy="42" r="9" fill="#fed7aa" stroke="#222" stroke-width="3"/>` },
+                    { name: 'きんにくポーズ', hint: 'ちからこぶを つくって ムキムキ ポーズ！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,54 L24,54 L24,36" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M32,48 A6,6 0 0,1 42,48" fill="none" stroke="#222" stroke-width="3"/><path d="M74,54 L96,54 L96,36" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M78,48 A6,6 0 0,1 88,48" fill="none" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ポケットに手', hint: 'ポケットに 手を いれて クールに きめよう！', svg: `<rect x="44" y="42" width="32" height="48" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="44,48 32,68 48,76" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="76,48 88,68 72,76" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'おいでおいで', hint: 'まえに 手を だして こっちにおいで〜！', svg: `<rect x="46" y="46" width="28" height="44" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,54 L34,78" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M74,54 Q90,54 92,42" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="92" cy="40" r="6" fill="#fef08a" stroke="#222" stroke-width="3"/>` }
+                ]
+            },
+            {
+                step: '④', short: 'あし', full: '④ あし・くつ',
+                items: [
+                    { name: 'げんきにジャンプ', hint: 'ぴょーんと 空中に 飛び上がった あし！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="50,40 32,58 42,76" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="70,40 88,58 78,76" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="96" x2="80" y2="96" stroke="#94a3b8" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="6 6"/>` },
+                    { name: 'ダッシュ！', hint: 'おおまたで ビューンと 走る あし！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="50,40 34,62 20,84" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="70,40 86,60 100,82" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'かたあし立ち', hint: '1ぽん足で バランスを とる ポーズ！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="52" y1="40" x2="52" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><ellipse cx="48" cy="90" rx="10" ry="5" fill="#38bdf8" stroke="#222" stroke-width="3"/><polyline points="68,40 86,56 62,64" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: '仁王立ち', hint: 'りょうあしを 大きく ひろげて ドーンと 立つ！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="50" y1="40" x2="36" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><line x1="70" y1="40" x2="84" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><ellipse cx="32" cy="90" rx="10" ry="5" fill="#222"/><ellipse cx="88" cy="90" rx="10" ry="5" fill="#222"/>` },
+                    { name: 'あぐら・おすわり', hint: 'じめんに ペタンと すわった あし！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,40 L24,66 L64,74" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M74,40 L96,66 L56,74" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'スニーカー', hint: 'おおきな カラフル スニーカーを はかせよう！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="52" y1="40" x2="52" y2="70" stroke="#222" stroke-width="4.5"/><line x1="68" y1="40" x2="68" y2="70" stroke="#222" stroke-width="4.5"/><path d="M24,88 L56,88 L56,70 L40,70 Q26,72 24,88 Z" fill="#fda4af" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><path d="M96,88 L64,88 L64,70 L80,70 Q94,72 96,88 Z" fill="#fda4af" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: 'ながぐつ', hint: 'あめのひも へっちゃら！きいろい ながぐつ！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M42,50 L56,50 L56,88 L30,88 L30,78 L42,78 Z" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><path d="M64,50 L78,50 L78,78 L90,78 L90,88 L64,88 Z" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: 'ローラースケート', hint: 'タイヤが ついた ローラースケート！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="50" y1="40" x2="46" y2="70" stroke="#222" stroke-width="4.5"/><line x1="70" y1="40" x2="74" y2="70" stroke="#222" stroke-width="4.5"/><rect x="30" y="68" width="22" height="12" rx="3" fill="#bae6fd" stroke="#222" stroke-width="3"/><circle cx="35" cy="86" r="5" fill="#f43f5e" stroke="#222" stroke-width="2.5"/><circle cx="47" cy="86" r="5" fill="#f43f5e" stroke="#222" stroke-width="2.5"/><rect x="68" y="68" width="22" height="12" rx="3" fill="#bae6fd" stroke="#222" stroke-width="3"/><circle cx="73" cy="86" r="5" fill="#f43f5e" stroke="#222" stroke-width="2.5"/><circle cx="85" cy="86" r="5" fill="#f43f5e" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ばねあし（ロボット）', hint: 'ぐるぐる バネの あしで ぴょんぴょん！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="48,40 38,50 56,58 38,66 56,74 46,84" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="46" cy="90" rx="12" ry="5" fill="#e2e8f0" stroke="#222" stroke-width="3"/><polyline points="72,40 82,50 64,58 82,66 64,74 74,84" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="74" cy="90" rx="12" ry="5" fill="#e2e8f0" stroke="#222" stroke-width="3"/>` },
+                    { name: 'にんじゃたび', hint: 'おやゆびが わかれた にんじゃの たび！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="50" y1="40" x2="50" y2="78" stroke="#222" stroke-width="4.5"/><line x1="70" y1="40" x2="70" y2="78" stroke="#222" stroke-width="4.5"/><rect x="34" y="78" width="20" height="10" rx="4" fill="#334155" stroke="#222" stroke-width="3"/><rect x="66" y="78" width="20" height="10" rx="4" fill="#334155" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ブーツ', hint: 'かっこいい ながめの ブーツを はかせよう！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M42,46 L56,46 L56,90 L32,90 L32,80 L42,80 Z" fill="#fed7aa" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><path d="M64,46 L78,46 L78,80 L88,80 L88,90 L64,90 Z" fill="#fed7aa" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: 'そらをとぶ（うかんでる）', hint: 'あしを まげて そらを ぷかぷか 飛んでいるよ！', svg: `<rect x="44" y="14" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="50,36 44,62 32,74" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><polyline points="70,36 78,56 64,68" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M28,90 Q60,82 92,90" fill="none" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round"/>` }
+                ]
+            },
+            {
+                step: '⑤', short: 'せなか', full: '⑤ しっぽ・せなか',
+                items: [
+                    { name: 'ねこしっぽ', hint: 'おしりから くるんと ながい ネコしっぽ！', svg: `<path d="M36,86 C68,90 90,72 86,44 C84,30 72,32 74,44" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round"/>` },
+                    { name: 'りすのふわふわしっぽ', hint: 'おおきな くるんとした リスの しっぽ！', svg: `<path d="M36,88 C24,64 34,26 64,24 C88,22 98,46 84,64 C72,76 56,66 64,52" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'てんしのはね', hint: 'せなかに ふわふわ 白い 天使の はね！', svg: `<path d="M54,66 C28,32 10,44 20,68 C30,66 36,74 44,78 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M66,66 C92,32 110,44 100,68 C90,66 84,74 76,78 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: '悪魔のはね', hint: 'ギザギザした コウモリみたいな はね！', svg: `<path d="M52,66 L16,32 L14,68 Q28,60 36,74 Q44,64 52,74 Z" fill="#e0e7ff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M68,66 L104,32 L106,68 Q92,60 84,74 Q76,64 68,74 Z" fill="#e0e7ff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ちょうちょのはね', hint: 'カラフルな チョウチョの はねを せなかに！', svg: `<path d="M54,60 C24,24 12,48 32,64 C16,74 28,94 54,74 Z" fill="#fbcfe8" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M66,60 C96,24 108,48 88,64 C104,74 92,94 66,74 Z" fill="#fbcfe8" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ジェットパック', hint: 'せなかに ロケットを しょって 空をとぼう！', svg: `<rect x="34" y="26" width="20" height="48" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><rect x="66" y="26" width="20" height="48" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><polygon points="38,74 44,96 50,74" fill="#fda4af" stroke="#222" stroke-width="3"/><polygon points="70,74 76,96 82,74" fill="#fda4af" stroke="#222" stroke-width="3"/>` },
+                    { name: 'りゅうっくサック', hint: 'おでかけ用の おおきな リュックサック！', svg: `<rect x="34" y="26" width="52" height="62" rx="14" fill="#fda4af" stroke="#222" stroke-width="3.5"/><line x1="34" y1="54" x2="86" y2="54" stroke="#222" stroke-width="3.5"/><rect x="52" y="48" width="16" height="14" rx="3" fill="#fef08a" stroke="#222" stroke-width="2.5"/>` },
+                    { name: '甲羅（カメ）', hint: 'カメさん みたいな かたい こうら！', svg: `<ellipse cx="60" cy="60" rx="34" ry="38" fill="#bbf7d0" stroke="#222" stroke-width="3.5"/><polygon points="60,42 74,50 74,66 60,74 46,66 46,50" fill="none" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: 'マントひらひら', hint: 'うしろに ひらひら なびく おおきな マント！', svg: `<path d="M36,26 L84,26 L98,92 L76,84 L60,94 L44,84 L22,92 Z" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'にじのオーラ', hint: 'からだの うしろに キラキラ にじの アーチ！', svg: `<path d="M18,86 A42,42 0 0,1 102,86" fill="none" stroke="#f43f5e" stroke-width="6" stroke-linecap="round"/><path d="M26,86 A34,34 0 0,1 94,86" fill="none" stroke="#facc15" stroke-width="6" stroke-linecap="round"/><path d="M34,86 A26,26 0 0,1 86,86" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round"/>` }
+                ]
+            },
+            {
+                step: '⑥', short: 'もちもの', full: '⑥ もちもの・はいけい',
+                items: [
+                    { name: 'まほうのつえ', prefix: 'まほうをつかう', hint: 'さきに おほしさまが ついた まほうの つえ！', svg: `<line x1="28" y1="92" x2="74" y2="46" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><polygon points="80,22 85,35 99,36 88,45 92,58 80,50 68,58 72,45 61,36 75,35" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: 'けん（勇者）', prefix: 'でんせつの勇者', hint: 'かっこいい ゆうしゃの けんを もたせよう！', svg: `<polygon points="52,72 52,22 60,14 68,22 68,72" fill="#e2e8f0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="36" y1="72" x2="84" y2="72" stroke="#facc15" stroke-width="6" stroke-linecap="round"/><rect x="55" y="72" width="10" height="24" rx="2" fill="#fed7aa" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ふうせん', prefix: 'お祝いムードの', hint: 'ふわふわ うかぶ カラフルな ふうせん！', svg: `<ellipse cx="60" cy="42" rx="22" ry="26" fill="#fda4af" stroke="#222" stroke-width="3.5"/><polygon points="60,68 54,74 66,74" fill="#fda4af" stroke="#222" stroke-width="2.5"/><path d="M60,74 Q52,86 62,100" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round"/>` },
+                    { name: 'おおきなキャンディ', prefix: 'あまいもの好きの', hint: 'ぐるぐる もようの ペロペロキャンディ！', svg: `<line x1="60" y1="64" x2="60" y2="100" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><circle cx="60" cy="42" r="24" fill="#fbcfe8" stroke="#222" stroke-width="3.5"/><path d="M60,42 C60,37 67,37 67,42 C67,50 52,50 52,41 C52,30 74,30 74,42" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'ギター', prefix: 'ロックスター', hint: 'ジャンジャン ならす かっこいい ギター！', svg: `<line x1="36" y1="78" x2="94" y2="28" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><ellipse cx="46" cy="70" rx="18" ry="13" transform="rotate(-35 46 70)" fill="#fda4af" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="66" r="4" fill="#fff"/>` },
+                    { name: 'カメラ', prefix: 'しゃしん大好き', hint: 'パシャッと とる カメラを もたせよう！', svg: `<rect x="26" y="42" width="68" height="44" rx="8" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><rect x="44" y="32" width="20" height="10" rx="2" fill="#cbd5e1" stroke="#222" stroke-width="3"/><circle cx="60" cy="64" r="14" fill="#38bdf8" stroke="#222" stroke-width="3.5"/><circle cx="56" cy="60" r="4" fill="#fff"/>` },
+                    { name: 'ほしと月', prefix: 'よぞらを旅する', hint: 'まわりに 三日月と おほしさまを かこう！', svg: `<path d="M52,24 A30,30 0 1,0 82,76 A22,22 0 1,1 52,24 Z" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="82,26 85,34 94,35 87,40 89,49 82,44 75,49 77,40 70,35 79,34" fill="#fef08a" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'おしろ', prefix: 'おしろに住む', hint: 'はいけいに おおきな おしろを かこう！', svg: `<rect x="30" y="54" width="60" height="42" fill="#e0e7ff" stroke="#222" stroke-width="3.5"/><polygon points="26,54 38,30 50,54" fill="#fda4af" stroke="#222" stroke-width="3"/><polygon points="70,54 82,30 94,54" fill="#fda4af" stroke="#222" stroke-width="3"/><path d="M52,96 L52,74 A8,8 0 0,1 68,74 L68,96 Z" fill="#fef08a" stroke="#222" stroke-width="3"/>` },
+                    { name: 'キラキラエフェクト', prefix: 'まばゆく輝く', hint: 'まわりに キラキラを いっぱい かこう！', svg: `<polygon points="44,24 49,39 64,40 52,50 56,65 44,56 32,65 36,50 24,40 39,39" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/><polygon points="84,52 87,62 98,63 90,70 92,80 84,74 76,80 78,70 70,63 81,62" fill="#bae6fd" stroke="#222" stroke-width="3" stroke-linejoin="round"/>` },
+                    { name: 'たからばこ', prefix: 'おたからゲットの', hint: 'ピッカピカの たからばこを よこに かこう！', svg: `<rect x="28" y="52" width="64" height="38" rx="4" fill="#fed7aa" stroke="#222" stroke-width="3.5"/><path d="M28,52 C28,32 92,32 92,52 Z" fill="#fdba74" stroke="#222" stroke-width="3.5"/><rect x="52" y="46" width="16" height="16" rx="3" fill="#fef08a" stroke="#222" stroke-width="3"/>` },
+                    { name: '本（まどうしょ）', prefix: 'ものしり博士な', hint: 'ふしぎな ことが かいてある 大きな 本！', svg: `<path d="M22,32 Q42,26 60,36 Q78,26 98,32 L98,84 Q78,78 60,88 Q42,78 22,84 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="60" y1="36" x2="60" y2="88" stroke="#222" stroke-width="3"/><line x1="32" y1="48" x2="50" y2="50" stroke="#94a3b8" stroke-width="3"/><line x1="70" y1="50" x2="88" y2="48" stroke="#94a3b8" stroke-width="3"/>` },
+                    { name: 'ペットのミニキャラ', prefix: 'あいぼう連れの', hint: 'あしもとに かわいい ちびっこペットを かこう！', svg: `<circle cx="60" cy="64" r="24" fill="#fef08a" stroke="#222" stroke-width="3.5"/><polygon points="42,46 40,26 54,42" fill="#fef08a" stroke="#222" stroke-width="3"/><polygon points="78,46 80,26 66,42" fill="#fef08a" stroke="#222" stroke-width="3"/><circle cx="52" cy="62" r="3" fill="#222"/><circle cx="68" cy="62" r="3" fill="#222"/><path d="M55,70 Q60,75 65,70" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round"/>` }
+                ]
+            }
+        ]
+    },
+
+    /* ========================================================================
+       テーマ③：🐉 かくうのどうぶつ（全72種 ＋ しんしゅずかんバナー）
+    ======================================================================== */
+    animal: {
+        id: 'animal',
+        title: 'どうぶつ',
+        categories: [
+            {
+                step: '①', short: 'あたま', full: '① あたま・かお',
+                items: [
+                    { name: 'ライオン（たてがみ）', kana: 'ライオ', habitat: 'サバンナのいわば', hint: 'ふわふわの たてがみを ぐるっと かこう！', svg: `<circle cx="60" cy="60" r="40" fill="#fde047" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="62" r="23" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="51" cy="57" r="3.5" fill="#222"/><circle cx="69" cy="57" r="3.5" fill="#222"/><polygon points="60,64 55,60 65,60" fill="#222"/><path d="M51,70 Q60,76 69,70" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'うさぎ（ながいみみ）', kana: 'ウサ', habitat: 'おはなばたけ', hint: 'ながーい おみみを ピンと かこう！', svg: `<ellipse cx="45" cy="34" rx="9" ry="24" transform="rotate(-10 45 34)" fill="#fff" stroke="#222" stroke-width="3.5"/><ellipse cx="75" cy="34" rx="9" ry="24" transform="rotate(10 75 34)" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="74" r="24" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="51" cy="70" r="3.5" fill="#222"/><circle cx="69" cy="70" r="3.5" fill="#222"/><path d="M54,79 Q60,84 66,79" fill="none" stroke="#222" stroke-width="3.2" stroke-linecap="round"/>` },
+                    { name: 'きょうりゅう（ティラノ）', kana: 'ティラノ', habitat: 'かざんのふもと', hint: 'おおきな あごと ギザギザの キバ！', svg: `<path d="M28,36 C28,22 86,22 92,46 L94,64 L54,64 L54,74 L86,74 L84,88 L32,88 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="48" cy="40" r="4.5" fill="#222"/><polyline points="62,64 66,71 70,64 74,71 78,64 82,71 86,64" fill="#fff" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ふくろう（おおきなめ）', kana: 'ホー', habitat: 'ふかいもりのなか', hint: 'まんまる 大きな目を 2つ かこう！', svg: `<path d="M32,34 L44,42 Q60,36 76,42 L88,34 L86,74 C86,92 34,92 34,74 Z" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="47" cy="58" r="13" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="47" cy="58" r="5" fill="#222"/><circle cx="73" cy="58" r="13" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="73" cy="58" r="5" fill="#222"/><polygon points="60,64 54,73 66,73" fill="#facc15" stroke="#222" stroke-width="3"/>` },
+                    { name: 'さめ（ぎざぎざ歯）', kana: 'ジョーズ', habitat: 'ひろいサンゴしょう', hint: 'とんがった あたまに ギザギザの 歯！', svg: `<path d="M60,16 C86,36 94,68 90,88 L30,88 C26,68 34,36 60,16 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="44" cy="50" r="4" fill="#222"/><circle cx="76" cy="50" r="4" fill="#222"/><path d="M38,76 Q60,62 82,76 Z" fill="#fff" stroke="#222" stroke-width="3"/><polyline points="44,74 50,68 56,74 62,68 68,74 74,68" fill="none" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ぞう（ながいはな）', kana: 'パオ', habitat: 'ひろいそうげん', hint: 'おおきな みみと ながーい 鼻を かこう！', svg: `<ellipse cx="30" cy="56" rx="14" ry="22" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><ellipse cx="90" cy="56" rx="14" ry="22" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="54" r="24" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="48" r="3.5" fill="#222"/><circle cx="70" cy="48" r="3.5" fill="#222"/><path d="M54,60 L54,88 C54,96 72,96 72,86 C72,80 64,80 64,85" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'カブトムシ（おおきなツノ）', kana: 'カブト', habitat: 'クヌギのはやし', hint: 'りっぱな おおきい ツノを まえに かこう！', svg: `<path d="M60,52 L60,16 L46,24 M60,16 L74,24" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="60" cy="70" rx="28" ry="20" fill="#fed7aa" stroke="#222" stroke-width="3.5"/><circle cx="48" cy="68" r="3.5" fill="#222"/><circle cx="72" cy="68" r="3.5" fill="#222"/>` },
+                    { name: 'ユニコーン（1ぽんツノ）', kana: 'ユニ', habitat: 'にじのみずうみ', hint: 'おでこに しましまの ツノを 1ぽん！', svg: `<polygon points="60,12 50,46 70,46" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="54" y1="26" x2="66" y2="30" stroke="#222" stroke-width="3"/><line x1="52" y1="36" x2="68" y2="40" stroke="#222" stroke-width="3"/><circle cx="60" cy="70" r="26" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="66" r="3.5" fill="#222"/><circle cx="70" cy="66" r="3.5" fill="#222"/>` },
+                    { name: 'カエル（とびだした目）', kana: 'ケロ', habitat: 'はすのいけ', hint: 'あたまの うえに まんまる目が とびだしてるよ！', svg: `<circle cx="42" cy="36" r="14" fill="#bbf7d0" stroke="#222" stroke-width="3.5"/><circle cx="42" cy="36" r="6" fill="#222"/><circle cx="78" cy="36" r="14" fill="#bbf7d0" stroke="#222" stroke-width="3.5"/><circle cx="78" cy="36" r="6" fill="#222"/><ellipse cx="60" cy="66" rx="36" ry="24" fill="#bbf7d0" stroke="#222" stroke-width="3.5"/><path d="M36,68 Q60,82 84,68" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'タコ（くちと足）', kana: 'タコ', habitat: 'しんかいのそこ', hint: 'まるい おくちの まわりに うねうね足！', svg: `<circle cx="60" cy="52" r="28" fill="#fda4af" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="48" r="3.5" fill="#222"/><circle cx="70" cy="48" r="3.5" fill="#222"/><circle cx="60" cy="62" r="7" fill="#fecdd3" stroke="#222" stroke-width="3"/><path d="M40,76 Q32,92 42,96 M80,76 Q88,92 78,96" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'ロボット（アンテナ）', kana: 'メカ', habitat: 'ロボットとし', hint: 'ピコピコ アンテナと 四角い かお！', svg: `<line x1="60" y1="26" x2="60" y2="12" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="10" r="4.5" fill="#f43f5e" stroke="#222" stroke-width="2.5"/><rect x="30" y="26" width="60" height="62" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><circle cx="46" cy="50" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/><circle cx="74" cy="50" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/><rect x="44" y="68" width="32" height="9" rx="3" fill="#fff" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ねこ（ひげとみみ）', kana: 'ニャン', habitat: 'ひだまりのにわ', hint: 'さんかくの みみと ヒゲを かこう！', svg: `<polygon points="34,46 32,20 52,36" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="86,46 88,20 68,36" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="60" cy="64" r="28" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="49" cy="58" r="3.5" fill="#222"/><circle cx="71" cy="58" r="3.5" fill="#222"/><path d="M52,68 Q56,74 60,68 Q64,74 68,68" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><line x1="20" y1="60" x2="36" y2="62" stroke="#222" stroke-width="3"/><line x1="100" y1="60" x2="84" y2="62" stroke="#222" stroke-width="3"/>` }
+                ]
+            },
+            {
+                step: '②', short: 'からだ', full: '② からだ・もよう',
+                items: [
+                    { name: 'しましま（トラもよう）', kana: 'トラ', hint: 'トラみたいな しましま もようを かこう！', svg: `<rect x="34" y="24" width="52" height="72" rx="24" fill="#fef08a" stroke="#222" stroke-width="3.5"/><path d="M35,44 L50,48 L35,54" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><path d="M85,44 L70,48 L85,54" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><path d="M35,68 L52,72 L35,78" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><path d="M85,68 L68,72 L85,78" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'みずたま（ダルメシアン）', kana: 'ドット', hint: 'まるい ぶちもようを いっぱい かこう！', svg: `<rect x="34" y="24" width="52" height="72" rx="24" fill="#fff" stroke="#222" stroke-width="3.5"/><circle cx="50" cy="44" r="6" fill="#222"/><circle cx="72" cy="52" r="7" fill="#222"/><circle cx="48" cy="70" r="7" fill="#222"/><circle cx="70" cy="78" r="5" fill="#222"/>` },
+                    { name: 'ウロコ（ドラゴン）', kana: 'ゴン', hint: 'ドラゴンの しましま おなかを かこう！', svg: `<path d="M42,24 L78,24 L88,92 L32,92 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M46,34 L74,34 L78,86 L42,86 Z" fill="#fef08a" stroke="#222" stroke-width="3"/><line x1="45" y1="48" x2="75" y2="48" stroke="#222" stroke-width="3"/><line x1="44" y1="62" x2="76" y2="62" stroke="#222" stroke-width="3"/><line x1="43" y1="76" x2="77" y2="76" stroke="#222" stroke-width="3"/>` },
+                    { name: 'もこもこ（ひつじ）', kana: 'モコ', hint: 'くもみたいに モコモコした からだ！', svg: `<path d="M38,34 C24,34 22,52 32,60 C22,70 28,90 44,90 C52,100 68,100 76,90 C92,90 98,70 88,60 C98,52 96,34 82,34 C74,22 46,22 38,34 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'トゲトゲ（ハリネズミ）', kana: 'トゲ', hint: 'ハリネズミ みたいに トゲトゲがいっぱい！', svg: `<polygon points="60,18 72,32 90,26 84,46 100,56 84,68 92,86 72,82 60,98 48,82 28,86 36,68 20,56 36,46 30,26 48,32" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'こうら（カメ）', kana: 'ガメ', hint: 'かたい カメの こうらを かこう！', svg: `<ellipse cx="60" cy="60" rx="34" ry="38" fill="#bbf7d0" stroke="#222" stroke-width="3.5"/><polygon points="60,42 74,50 74,66 60,74 46,66 46,50" fill="none" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: 'ぷにぷにスライム', kana: 'プルン', hint: 'みず滴 みたいに ぷにぷにした からだ！', svg: `<path d="M32,88 C28,50 40,24 60,24 C80,24 92,50 88,88 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M46,38 Q42,54 44,68" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'きんにくムキムキ', kana: 'マッスル', hint: 'ちからもちの ムキムキ 逆三角形ボディ！', svg: `<path d="M26,34 Q60,20 94,34 L82,92 L38,92 Z" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M42,48 Q51,56 60,48 Q69,56 78,48" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'ほそながヘビ', kana: 'ニョロ', hint: 'くねくね ほそながーい からだを かこう！', svg: `<path d="M60,22 C92,22 92,52 60,56 C28,60 28,92 64,94" fill="none" stroke="#bbf7d0" stroke-width="22" stroke-linecap="round"/><path d="M60,22 C92,22 92,52 60,56 C28,60 28,92 64,94" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="14 8"/>` },
+                    { name: 'まるまるふとっちょ', kana: 'ドスコイ', hint: 'まんまる おおきな おなかを かこう！', svg: `<ellipse cx="60" cy="60" rx="38" ry="34" fill="#fbcfe8" stroke="#222" stroke-width="3.5"/><ellipse cx="60" cy="64" rx="22" ry="20" fill="#fff" stroke="#222" stroke-width="3"/>` },
+                    { name: 'メカボディ（歯車）', kana: 'ギア', hint: 'はぐるまや ネジが ついた メカの からだ！', svg: `<rect x="34" y="24" width="52" height="70" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="58" r="14" fill="#fef08a" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="58" r="5" fill="#fff" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'ほしぞらもよう', kana: 'コスモ', hint: 'おほしさまと 三日月が うかぶ からだ！', svg: `<rect x="34" y="24" width="52" height="72" rx="24" fill="#e0e7ff" stroke="#222" stroke-width="3.5"/><polygon points="56,38 59,46 68,47 61,52 63,61 56,56 49,61 51,52 44,47 53,46" fill="#fef08a" stroke="#222" stroke-width="2.5"/><circle cx="70" cy="72" r="5" fill="#fef08a" stroke="#222" stroke-width="2"/>` }
+                ]
+            },
+            {
+                step: '③', short: 'あし', full: '③ あし・うごき',
+                items: [
+                    { name: '4ほんあし（ライオン風）', hint: 'まえあしと うしろあし 4ほん かこう！', svg: `<rect x="28" y="24" width="64" height="24" rx="10" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="36" y1="48" x2="32" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><line x1="48" y1="48" x2="48" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><line x1="72" y1="48" x2="72" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><line x1="84" y1="48" x2="88" y2="88" stroke="#222" stroke-width="4.5" stroke-linecap="round"/>` },
+                    { name: '2ほんあし（きょうりゅう風）', hint: 'どっしり 2ほんの 太い あしで 立つよ！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M38,38 L56,38 L56,90 L30,90 L30,78 L38,72 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M64,38 L82,38 L82,72 L90,78 L90,90 L64,90 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'タコのあし（うねうね）', hint: 'うねうね くねくね たくさんの あし！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,38 C32,54 22,72 30,90" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M55,38 C48,60 46,76 52,94" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M65,38 C72,60 74,76 68,94" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M74,38 C88,54 98,72 90,90" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/>` },
+                    { name: 'トリのあし（かぎづめ）', hint: '3ぼんの かぎづめが ある トリの あし！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><line x1="48" y1="38" x2="44" y2="74" stroke="#222" stroke-width="4"/><polyline points="30,86 44,74 56,86" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="72" y1="38" x2="76" y2="74" stroke="#222" stroke-width="4"/><polyline points="64,86 76,74 90,86" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'タイヤ（くるま風）', hint: 'まるい タイヤで ビューンと 走るよ！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><circle cx="42" cy="74" r="18" fill="#475569" stroke="#222" stroke-width="3.5"/><circle cx="42" cy="74" r="7" fill="#fff" stroke="#222" stroke-width="3"/><circle cx="78" cy="74" r="18" fill="#475569" stroke="#222" stroke-width="3.5"/><circle cx="78" cy="74" r="7" fill="#fff" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ばね（ぴょんぴょん）', hint: 'ぐるぐる バネで ぴょんぴょん はねるよ！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="48,38 38,48 56,56 38,64 56,72 46,82" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="46" cy="88" rx="12" ry="5" fill="#fef08a" stroke="#222" stroke-width="3"/><polyline points="72,38 82,48 64,56 82,64 64,72 74,82" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="74" cy="88" rx="12" ry="5" fill="#fef08a" stroke="#222" stroke-width="3"/>` },
+                    { name: 'ヒレ（およぐ）', hint: 'おさかな みたいな おおきな ヒレ！', svg: `<rect x="44" y="16" width="32" height="20" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,36 C46,56 54,72 60,78 C66,72 74,56 74,36 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M60,78 L36,96 Q60,88 84,96 Z" fill="#38bdf8" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: '6ほんあし（こんちゅう）', hint: '左右に 3ぼんずつ 6ほんの あしを かこう！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="44,40 24,48 20,62" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><polyline points="44,48 22,64 18,80" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><polyline points="46,56 28,78 26,94" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><polyline points="76,40 96,48 100,62" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><polyline points="76,48 98,64 102,80" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><polyline points="74,56 92,78 94,94" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: 'くも（ふわふわ浮く）', hint: 'くもの うえに のって ふわふわ うかんでるよ！', svg: `<rect x="44" y="16" width="32" height="24" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M30,84 C18,84 18,68 30,64 C32,52 48,48 56,56 C66,48 84,52 86,64 C98,68 98,84 84,84 Z" fill="#e0f2fe" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ロボットのあし', hint: 'カクカクした ロボットの あしを かこう！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><rect x="40" y="38" width="14" height="38" fill="#e2e8f0" stroke="#222" stroke-width="3.2"/><rect x="30" y="76" width="24" height="14" rx="3" fill="#94a3b8" stroke="#222" stroke-width="3.2"/><rect x="66" y="38" width="14" height="38" fill="#e2e8f0" stroke="#222" stroke-width="3.2"/><rect x="66" y="76" width="24" height="14" rx="3" fill="#94a3b8" stroke="#222" stroke-width="3.2"/>` },
+                    { name: 'カエルのあし（水かき）', hint: 'ひらひら 水かきが ついた カエルの あし！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><polyline points="48,38 36,60 44,78" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><polygon points="44,78 26,92 44,88 56,92" fill="#bbf7d0" stroke="#222" stroke-width="3" stroke-linejoin="round"/><polyline points="72,38 84,60 76,78" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><polygon points="76,78 64,92 76,88 94,92" fill="#bbf7d0" stroke="#222" stroke-width="3" stroke-linejoin="round"/>` },
+                    { name: 'へび（あしなしニョロニョロ）', hint: 'あしが なくて ニョロニョロ すすむ しっぽあし！', svg: `<rect x="44" y="16" width="32" height="22" rx="6" fill="#f1f5f9" stroke="#222" stroke-width="2.5" stroke-dasharray="4 4"/><path d="M46,38 C46,64 78,64 84,84 C62,92 42,78 46,38 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` }
+                ]
+            },
+            {
+                step: '④', short: 'しっぽ', full: '④ しっぽ',
+                items: [
+                    { name: 'ほのおのしっぽ', kana: 'メラ', hint: 'しっぽの さきに ほのおが もえているよ！', svg: `<path d="M28,84 Q48,84 62,68" fill="none" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><path d="M74,24 C90,42 96,58 88,76 C82,86 62,86 60,72 C58,60 68,48 74,24 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'いなずま（カミナリ）', kana: 'ピカ', hint: 'ギザギザの カミナリがたの しっぽを かこう！', svg: `<polygon points="34,88 52,60 40,60 66,24 84,24 64,54 78,54" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ふわふわリス', kana: 'リス', hint: 'くるんと おおきな ふわふわ リスしっぽ！', svg: `<path d="M36,86 C26,64 34,30 62,26 C86,24 96,46 82,62 C70,74 56,64 64,52" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'サソリのどくばり', kana: 'サソリ', hint: 'くるっと まがって とがった サソリの ハリ！', svg: `<path d="M36,88 C68,94 92,74 86,44 C82,28 66,24 56,34" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round"/><polygon points="56,34 40,26 52,44" fill="#f43f5e" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'おさかなヒレ', kana: 'ギョ', hint: 'おさかな みたいな 尾ビレを かこう！', svg: `<path d="M30,72 L56,58 L78,24 L72,62 L88,92 L54,72 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'お花のしっぽ', kana: 'フルール', hint: 'しっぽの さきに かわいい おはなが 咲いてるよ！', svg: `<path d="M30,86 Q50,82 62,62" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><circle cx="72" cy="46" r="16" fill="#fda4af" stroke="#222" stroke-width="3.5"/><circle cx="72" cy="46" r="7" fill="#fef08a" stroke="#222" stroke-width="3"/>` },
+                    { name: 'くるくるブタしっぽ', kana: 'ブー', hint: 'ばねみたいに くるくる まいた しっぽ！', svg: `<path d="M28,74 C44,74 52,54 42,50 C34,48 36,68 56,68 C74,68 82,48 72,44 C64,42 66,62 88,60" fill="none" stroke="#222" stroke-width="4.2" stroke-linecap="round"/>` },
+                    { name: 'きょうりゅう（トゲつき）', kana: 'ザウルス', hint: 'おおきな しっぽに トゲトゲを つけよう！', svg: `<path d="M26,86 Q64,84 94,48 L78,40 Q56,64 26,68 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="44,66 48,50 58,62" fill="#fef08a" stroke="#222" stroke-width="2.8"/><polygon points="62,56 70,40 76,50" fill="#fef08a" stroke="#222" stroke-width="2.8"/>` },
+                    { name: 'くじゃく（ハネしっぽ）', kana: 'クジャク', hint: 'おうぎ みたいに ひろがる ハネしっぽ！', svg: `<path d="M60,92 L22,52 A44,44 0 0,1 98,52 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="42" cy="48" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/><circle cx="60" cy="40" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="48" r="6" fill="#38bdf8" stroke="#222" stroke-width="2.5"/>` },
+                    { name: 'コンセント・プラグ', kana: 'ボルト', hint: 'コードの さきに コンセントを かこう！', svg: `<path d="M26,84 C44,92 64,74 64,54" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><rect x="52" y="34" width="24" height="22" rx="4" fill="#cbd5e1" stroke="#222" stroke-width="3.5"/><line x1="58" y1="34" x2="58" y2="20" stroke="#222" stroke-width="4" stroke-linecap="round"/><line x1="70" y1="34" x2="70" y2="20" stroke="#222" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'ほしのしっぽ', kana: 'キラ', hint: 'しっぽの さきに おほしさまが ついてるよ！', svg: `<path d="M26,86 Q50,82 66,58" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round"/><polygon points="76,28 80,40 93,41 83,49 86,62 76,54 66,62 69,49 59,41 72,40" fill="#fef08a" stroke="#222" stroke-width="3.2" stroke-linejoin="round"/>` },
+                    { name: '2ほんしっぽ（ねこのまた）', kana: 'マタ', hint: 'さきが 2つに わかれた ふしぎな しっぽ！', svg: `<path d="M32,86 C54,86 64,66 56,36" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/><path d="M44,86 C72,88 92,70 86,42" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/>` }
+                ]
+            },
+            {
+                step: '⑤', short: 'つばさ', full: '⑤ つばさ・せなか',
+                items: [
+                    { name: 'ドラゴンのつばさ', hint: 'ギザギザした かっこいい ドラゴンの つばさ！', svg: `<path d="M52,66 L16,32 L14,68 Q28,60 36,74 Q44,64 52,74 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M68,66 L104,32 L106,68 Q92,60 84,74 Q76,64 68,74 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'てんしのハネ', hint: 'ふわふわ 白い やさしい 天使の ハネ！', svg: `<path d="M54,66 C28,32 10,44 20,68 C30,66 36,74 44,78 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M66,66 C92,32 110,44 100,68 C90,66 84,74 76,78 Z" fill="#fff" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ちょうちょのはね', hint: 'おおきな チョウチョの はねを せなかに！', svg: `<path d="M54,60 C24,24 12,48 32,64 C16,74 28,94 54,74 Z" fill="#fbcfe8" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M66,60 C96,24 108,48 88,64 C104,74 92,94 66,74 Z" fill="#fbcfe8" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: '背びれ（サメ・ゴジラ）', hint: 'せなかに トゲトゲの 背びれを ならべよう！', svg: `<path d="M24,84 Q60,64 96,84" fill="none" stroke="#222" stroke-width="3.5" stroke-linecap="round"/><polygon points="34,78 38,52 48,74" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="52,72 60,40 68,72" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><polygon points="72,74 82,52 86,78" fill="#bae6fd" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'プロペラ', hint: 'くるくる まわる プロペラで 空を 飛ぼう！', svg: `<line x1="60" y1="86" x2="60" y2="46" stroke="#222" stroke-width="4.5" stroke-linecap="round"/><ellipse cx="38" cy="44" rx="22" ry="7" fill="#fef08a" stroke="#222" stroke-width="3.5"/><ellipse cx="82" cy="44" rx="22" ry="7" fill="#fef08a" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="44" r="6" fill="#f43f5e" stroke="#222" stroke-width="3"/>` },
+                    { name: '火山（せなかに山）', hint: 'せなかに ちいさな 火山が のっているよ！', svg: `<polygon points="24,86 46,44 74,44 96,86" fill="#fed7aa" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M52,36 Q46,24 54,18 M68,36 Q74,24 66,18" fill="none" stroke="#f43f5e" stroke-width="3.5" stroke-linecap="round"/>` },
+                    { name: '甲羅のトゲ', hint: 'トゲトゲが 生えた かたい こうら！', svg: `<path d="M28,84 A32,32 0 0,1 92,84 Z" fill="#bbf7d0" stroke="#222" stroke-width="3.5"/><polygon points="34,62 24,50 42,54" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="54,52 60,36 66,52" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="78,54 96,50 86,62" fill="#fff" stroke="#222" stroke-width="3"/>` },
+                    { name: 'にじのハネ', hint: 'カラフルな にじいろの ハネを かこう！', svg: `<path d="M54,66 C26,34 12,48 24,72 C34,68 42,74 50,78 Z" fill="#fef08a" stroke="#222" stroke-width="3.5"/><path d="M66,66 C94,34 108,48 96,72 C86,68 78,74 70,78 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'こうもりのはね', hint: 'くろっぽい コウモリの つばさを かこう！', svg: `<path d="M52,66 L16,32 L14,68 Q28,60 36,74 Q44,64 52,74 Z" fill="#cbd5e1" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><path d="M68,66 L104,32 L106,68 Q92,60 84,74 Q76,64 68,74 Z" fill="#cbd5e1" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: '風船がうかぶ', hint: 'せなかから カラフルな 風船が ぷかぷか！', svg: `<line x1="60" y1="88" x2="44" y2="54" stroke="#222" stroke-width="2.8"/><line x1="60" y1="88" x2="76" y2="50" stroke="#222" stroke-width="2.8"/><circle cx="42" cy="40" r="15" fill="#fda4af" stroke="#222" stroke-width="3.2"/><circle cx="78" cy="36" r="15" fill="#bae6fd" stroke="#222" stroke-width="3.2"/>` },
+                    { name: 'ロケットブースター', hint: 'せなかに ジェットエンジンを つけよう！', svg: `<rect x="34" y="28" width="20" height="48" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><rect x="66" y="28" width="20" height="48" rx="10" fill="#e2e8f0" stroke="#222" stroke-width="3.5"/><polygon points="38,76 44,96 50,76" fill="#fda4af" stroke="#222" stroke-width="3"/><polygon points="70,76 76,96 82,76" fill="#fda4af" stroke="#222" stroke-width="3"/>` },
+                    { name: 'はっぱ・木が生えてる', hint: 'せなかから 元気な 木や はっぱが 生えてるよ！', svg: `<rect x="54" y="58" width="12" height="28" fill="#fed7aa" stroke="#222" stroke-width="3"/><circle cx="46" cy="48" r="16" fill="#bbf7d0" stroke="#222" stroke-width="3.2"/><circle cx="74" cy="48" r="16" fill="#bbf7d0" stroke="#222" stroke-width="3.2"/><circle cx="60" cy="34" r="18" fill="#bbf7d0" stroke="#222" stroke-width="3.2"/>` }
+                ]
+            },
+            {
+                step: '⑥', short: 'のうりょく', full: '⑥ とくしゅのうりょく',
+                items: [
+                    { name: '口からほのお', kana: 'メラメラ', rarity: 4, hint: 'くちから ボーッと ほのおを かこう！', svg: `<path d="M52,58 C66,34 88,30 98,46 C86,48 86,56 102,60 C86,66 88,74 96,80 C76,86 60,76 52,58 Z" fill="#fda4af" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><circle cx="32" cy="60" r="8" fill="#fef08a" stroke="#222" stroke-width="3"/>` },
+                    { name: 'カミナリをだす', kana: 'ビリビリ', rarity: 4, hint: 'まわりに ギザギザの カミナリを かこう！', svg: `<polygon points="66,18 36,62 58,62 48,102 86,54 64,54" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'こおり・ゆきふらし', kana: 'ヒエヒエ', rarity: 4, hint: 'キラキラの 雪のけっしょうを かこう！', svg: `<line x1="60" y1="24" x2="60" y2="96" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/><line x1="28" y1="42" x2="92" y2="78" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/><line x1="92" y1="42" x2="28" y2="78" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="60" r="10" fill="#fff" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'みずでっぽう', kana: 'ザブーン', rarity: 3, hint: 'みずの しずくを いっぱい とばそう！', svg: `<path d="M44,28 C44,28 28,50 28,62 A16,16 0 0,0 60,62 C60,50 44,28 44,28 Z" fill="#bae6fd" stroke="#222" stroke-width="3.5"/><path d="M80,44 C80,44 68,60 68,70 A12,12 0 0,0 92,70 C92,60 80,44 80,44 Z" fill="#38bdf8" stroke="#222" stroke-width="3.5"/>` },
+                    { name: 'キラキラ光る', kana: 'ピカピカ', rarity: 4, hint: 'まわりに キラキラ星を たくさん かこう！', svg: `<polygon points="60,20 67,46 94,52 67,58 60,84 53,58 26,52 53,46" fill="#fef08a" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/>` },
+                    { name: 'ちょうおんぱ', kana: 'ビビーン', rarity: 3, hint: 'ぐるぐる わっかの ちょうおんぱを 出そう！', svg: `<circle cx="60" cy="60" r="12" fill="none" stroke="#222" stroke-width="3.5"/><circle cx="60" cy="60" r="24" fill="none" stroke="#38bdf8" stroke-width="3.5" stroke-dasharray="8 6"/><circle cx="60" cy="60" r="36" fill="none" stroke="#222" stroke-width="3.5" stroke-dasharray="10 8"/>` },
+                    { name: '空をとぶ', kana: 'フワフワ', rarity: 3, hint: 'くもの うえまで 高く とびあがろう！', svg: `<path d="M30,78 C20,78 20,64 30,60 C32,50 46,46 54,54 C62,46 78,50 80,60 C90,64 90,78 78,78 Z" fill="#fff" stroke="#222" stroke-width="3.5"/><path d="M60,42 L60,20 M48,30 L60,18 L72,30" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` },
+                    { name: 'へんしん（透明）', kana: 'ドロロン', rarity: 5, hint: 'てんせん で かいて とうめいに へんしん！', svg: `<circle cx="60" cy="60" r="30" fill="#f8fafc" stroke="#222" stroke-width="3.5" stroke-dasharray="7 7"/><text x="60" y="66" text-anchor="middle" font-size="16" font-weight="900" fill="#475569">ドロロン</text>` },
+                    { name: 'ちからもち（岩もち）', kana: 'ドッカン', rarity: 4, hint: 'おおきな 岩を かるがる もちあげよう！', svg: `<polygon points="34,76 28,48 48,30 76,32 92,52 84,76" fill="#cbd5e1" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/><line x1="46" y1="48" x2="62" y2="56" stroke="#222" stroke-width="3"/>` },
+                    { name: 'おんがく（音符）', kana: 'ルンルン', rarity: 3, hint: 'まわりに 音符（おんぷ）を ぷかぷか かこう！', svg: `<circle cx="38" cy="78" r="10" fill="#fef08a" stroke="#222" stroke-width="3.5"/><polyline points="48,78 48,30 72,38" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="82" r="9" fill="#fda4af" stroke="#222" stroke-width="3.5"/><line x1="87" y1="82" x2="87" y2="42" stroke="#222" stroke-width="4" stroke-linecap="round"/>` },
+                    { name: 'あまいにおい（お菓子）', kana: 'スイーツ', rarity: 4, hint: 'まわりに キャンディや おかしが うかぶよ！', svg: `<circle cx="60" cy="60" r="18" fill="#fda4af" stroke="#222" stroke-width="3.5"/><polygon points="42,60 24,46 24,74" fill="#fef08a" stroke="#222" stroke-width="3.2"/><polygon points="78,60 96,46 96,74" fill="#fef08a" stroke="#222" stroke-width="3.2"/>` },
+                    { name: 'じかんをとめる（時計）', kana: 'チクタク', rarity: 5, hint: 'ふしぎな とけいで じかんを とめよう！', svg: `<circle cx="60" cy="60" r="32" fill="#fff" stroke="#222" stroke-width="3.5"/><polyline points="60,40 60,60 76,60" fill="none" stroke="#f43f5e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` }
+                ]
+            }
+        ]
+    }
+};
+
+/**
+ * ============================================================================
+ * アプリケーション状態（3テーマそれぞれの抽選状態を独立して保持）
+ * ============================================================================
+ */
+const appState = {
+    activeTheme: 'face',
+    activeMode: 'step', // 'step' or 'all'
+    isSpinning: false,
+    soundOn: true,
+    themes: {
+        face:   { step: 0, selected: [null, null, null, null, null, null], locked: [false, false, false, false, false, false] },
+        body:   { step: 0, selected: [null, null, null, null, null, null], locked: [false, false, false, false, false, false] },
+        animal: { step: 0, selected: [null, null, null, null, null, null], locked: [false, false, false, false, false, false] }
+    }
+};
+
+/**
+ * ============================================================================
+ * Web Audio API 効果音エンジン（外部ファイル一切不要）
+ * ============================================================================
+ */
+let audioCtx = null;
+
+function ensureAudio() {
+    if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+function playTick(pitch = 500) {
+    if (!appState.soundOn) return;
+    ensureAudio();
+    if (!audioCtx) return;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(pitch * 0.72, audioCtx.currentTime + 0.045);
+
+    gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.045);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.05);
+}
+
+function playChime() {
+    if (!appState.soundOn) return;
+    ensureAudio();
+    if (!audioCtx) return;
+
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const t = audioCtx.currentTime + i * 0.055;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.16, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.21);
+    });
+}
+
+function playFanfare() {
+    if (!appState.soundOn) return;
+    ensureAudio();
+    if (!audioCtx) return;
+
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const t = audioCtx.currentTime + i * 0.05;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.3);
+    });
+}
+
+function playClick() {
+    if (!appState.soundOn) return;
+    playTick(680);
+}
+
+function toggleSound() {
+    appState.soundOn = !appState.soundOn;
+    document.getElementById('sound-icon').textContent = appState.soundOn ? '🔊' : '🔇';
+    document.getElementById('sound-label').textContent = appState.soundOn ? 'おと ON' : 'おと OFF';
+    if (appState.soundOn) playClick();
+}
+
+/**
+ * ============================================================================
+ * テーマ＆モード切り替え
+ * ============================================================================
+ */
+function switchTheme(themeKey) {
+    if (appState.isSpinning) return;
+    playClick();
+    appState.activeTheme = themeKey;
+
+    document.body.className = `theme-${themeKey}`;
+
+    ['face', 'body', 'animal'].forEach(key => {
+        document.getElementById(`theme-btn-${key}`).classList.toggle('active', key === themeKey);
+    });
+
+    // いちらんモード表示中なら未抽選スロットを自動補完
+    if (appState.activeMode === 'all') {
+        fillUnselectedForTheme(themeKey);
+    }
+
+    renderCurrentView();
+}
+
+function switchMode(modeKey) {
+    if (appState.isSpinning) return;
+    playClick();
+    appState.activeMode = modeKey;
+
+    document.getElementById('mode-btn-step').classList.toggle('active', modeKey === 'step');
+    document.getElementById('mode-btn-all').classList.toggle('active', modeKey === 'all');
+
+    document.getElementById('view-step').classList.toggle('hidden', modeKey !== 'step');
+    document.getElementById('view-all').classList.toggle('hidden', modeKey !== 'all');
+
+    if (modeKey === 'all') {
+        fillUnselectedForTheme(appState.activeTheme);
+    }
+
+    renderCurrentView();
+}
+
+function fillUnselectedForTheme(themeKey) {
+    const themeObj = THEMES[themeKey];
+    const tState = appState.themes[themeKey];
+    themeObj.categories.forEach((cat, idx) => {
+        if (tState.selected[idx] === null) {
+            tState.selected[idx] = Math.floor(Math.random() * cat.items.length);
+        }
+    });
+}
+
+function renderCurrentView() {
+    updateBonusBanner();
+    if (appState.activeMode === 'step') {
+        renderStepMode();
+    } else {
+        renderAllMode();
+    }
+}
+
+/**
+ * ============================================================================
+ * 特典バナー更新（ぜんしん：ふたつ名 / どうぶつ：しんしゅずかん）
+ * ============================================================================
+ */
+function updateBonusBanner() {
+    const banner = document.getElementById('bonus-banner');
+    const badge = document.getElementById('bonus-badge');
+    const rarity = document.getElementById('bonus-rarity');
+    const mainText = document.getElementById('bonus-main-text');
+    const subRow = document.getElementById('bonus-sub-row');
+
+    const themeKey = appState.activeTheme;
+    const tState = appState.themes[themeKey];
+    const cats = THEMES[themeKey].categories;
+
+    // 6つすべて揃っている場合のみ表示（かおづくりでは非表示）
+    const isComplete = tState.selected.every(v => v !== null);
+    if (!isComplete || themeKey === 'face') {
+        banner.classList.add('hidden');
+        return;
+    }
+
+    if (themeKey === 'body') {
+        const head = cats[0].items[tState.selected[0]];
+        const body = cats[1].items[tState.selected[1]];
+        const item = cats[5].items[tState.selected[5]];
+
+        badge.textContent = '✨ きみのキャラの ふたつ名！';
+        rarity.textContent = '';
+        mainText.textContent = `${item.prefix}${head.adj}「${body.label}」キャラ！`;
+        subRow.innerHTML = `<span class="bonus-chip">🎨 かみに かいて 名前を つけよう！</span>`;
+        banner.classList.remove('hidden');
+    } else if (themeKey === 'animal') {
+        const head = cats[0].items[tState.selected[0]];
+        const body = cats[1].items[tState.selected[1]];
+        const tail = cats[3].items[tState.selected[3]];
+        const pow  = cats[5].items[tState.selected[5]];
+
+        const chimeraName = `${pow.kana}・${head.kana}${body.kana}${tail.kana}`;
+        const sum = tState.selected.reduce((a, b) => a + b, 0);
+        const stars = Math.min(5, Math.max(1, (sum % 3) + (pow.rarity - 2)));
+        const starStr = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+
+        badge.textContent = '📖 しんしゅずかん とうろく！';
+        rarity.textContent = `レア度 ${starStr}`;
+        mainText.textContent = chimeraName;
+        subRow.innerHTML = `
+            <span class="bonus-chip">🗺️ せいそくち：${head.habitat}</span>
+            <span class="bonus-chip">⚡ とくぎ：${pow.name}</span>
+        `;
+        banner.classList.remove('hidden');
+    }
+}
+
+/**
+ * ============================================================================
+ * 1. ステップモード描画＆抽選ロジック
+ * ============================================================================
+ */
+function renderStepMode(popAnimate = false) {
+    const themeKey = appState.activeTheme;
+    const tState = appState.themes[themeKey];
+    const cats = THEMES[themeKey].categories;
+
+    // ステップインジケーター（1〜6）
+    const nav = document.getElementById('step-nav');
+    nav.innerHTML = '';
+    cats.forEach((cat, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'step-pill';
+        if (idx === tState.step) btn.classList.add('active');
+        if (tState.selected[idx] !== null) btn.classList.add('done');
+        btn.innerHTML = `${cat.step}<br>${cat.short}`;
+        btn.onclick = () => {
+            if (appState.isSpinning) return;
+            playClick();
+            tState.step = idx;
+            renderStepMode();
+        };
+        nav.appendChild(btn);
+    });
+
+    const curCat = cats[tState.step];
+    const selIdx = tState.selected[tState.step];
+
+    document.getElementById('big-cat-pill').textContent = curCat.full;
+    document.getElementById('big-count-pill').textContent = `全${curCat.items.length}しゅるい`;
+
+    const stage = document.getElementById('big-svg-stage');
+    const nameEl = document.getElementById('big-part-name');
+    const hintEl = document.getElementById('big-part-hint');
+    const rollLabel = document.getElementById('roll-step-label');
+
+    if (selIdx === null) {
+        stage.innerHTML = `<div style="font-size: 3.3rem; opacity: 0.35;">🎲</div>`;
+        nameEl.textContent = 'ボタンをおしてね！';
+        hintEl.textContent = 'ルーレットをまわして パーツを きめよう！';
+        rollLabel.textContent = 'ルーレットをまわす！';
+    } else {
+        const item = curCat.items[selIdx];
+        stage.innerHTML = `<svg viewBox="0 0 120 120">${item.svg}</svg>`;
+        nameEl.textContent = item.name;
+        hintEl.textContent = `✏️ ${item.hint}`;
+        rollLabel.textContent = 'もういちど 引き直す！';
+
+        if (popAnimate) {
+            stage.classList.remove('animate-pop');
+            void stage.offsetWidth;
+            stage.classList.add('animate-pop');
+        }
+    }
+
+    const prevBtn = document.getElementById('prev-step-btn');
+    const nextBtn = document.getElementById('next-step-btn');
+    prevBtn.disabled = tState.step === 0;
+    nextBtn.textContent = (tState.step === cats.length - 1) ? '🎲 いちらんでみる ➡' : 'つぎのパーツへ ➡';
+}
+
+function moveStep(delta) {
+    if (appState.isSpinning) return;
+    playClick();
+
+    const tState = appState.themes[appState.activeTheme];
+    const total = THEMES[appState.activeTheme].categories.length;
+
+    if (tState.step + delta >= total) {
+        switchMode('all');
+        return;
+    }
+    tState.step = Math.max(0, Math.min(total - 1, tState.step + delta));
+    renderStepMode();
+}
+
+function spinCurrentStep() {
+    if (appState.isSpinning) return;
+    appState.isSpinning = true;
+
+    const themeKey = appState.activeTheme;
+    const tState = appState.themes[themeKey];
+    const curCat = THEMES[themeKey].categories[tState.step];
+
+    const btn = document.getElementById('roll-step-btn');
+    const stage = document.getElementById('big-svg-stage');
+    const nameEl = document.getElementById('big-part-name');
+
+    btn.disabled = true;
+    stage.classList.add('spinning');
+
+    let tick = 0;
+    const maxTicks = 11;
+    const timer = setInterval(() => {
+        const r = Math.floor(Math.random() * curCat.items.length);
+        stage.innerHTML = `<svg viewBox="0 0 120 120">${curCat.items[r].svg}</svg>`;
+        nameEl.textContent = curCat.items[r].name;
+        playTick(440 + tick * 26);
+
+        tick++;
+        if (tick >= maxTicks) {
+            clearInterval(timer);
+            let finalIdx = Math.floor(Math.random() * curCat.items.length);
+            if (curCat.items.length > 1 && finalIdx === tState.selected[tState.step]) {
+                finalIdx = (finalIdx + 1) % curCat.items.length;
+            }
+            tState.selected[tState.step] = finalIdx;
+            appState.isSpinning = false;
+            btn.disabled = false;
+            stage.classList.remove('spinning');
+
+            if (tState.selected.every(v => v !== null)) {
+                playFanfare();
+            } else {
+                playChime();
+            }
+            updateBonusBanner();
+            renderStepMode(true);
+        }
+    }, 52);
+}
+
+/**
+ * ============================================================================
+ * 2. まとめていちらんモード描画＆抽選ロジック
+ * ============================================================================
+ */
+function renderAllMode() {
+    const themeKey = appState.activeTheme;
+    const tState = appState.themes[themeKey];
+    const cats = THEMES[themeKey].categories;
+
+    const grid = document.getElementById('parts-grid');
+    grid.innerHTML = '';
+
+    cats.forEach((cat, idx) => {
+        const itemIdx = tState.selected[idx] ?? 0;
+        const item = cat.items[itemIdx];
+        const isLocked = tState.locked[idx];
+
+        const card = document.createElement('div');
+        card.id = `mini-card-${idx}`;
+        card.className = `mini-card ${isLocked ? 'locked' : ''}`;
+
+        card.innerHTML = `
+            <div class="mini-top">
+                <span class="mini-cat">${cat.step}${cat.short}</span>
+                <button class="lock-btn" onclick="toggleLockPart(${idx})">
+                    ${isLocked ? '🔒 キープ中' : '🔓 キープ'}
+                </button>
+            </div>
+            <div class="mini-svg-box" id="mini-svg-${idx}" onclick="spinSinglePart(${idx})">
+                <svg viewBox="0 0 120 120">${item.svg}</svg>
+            </div>
+            <div class="mini-bottom">
+                <div class="mini-name" id="mini-name-${idx}">${item.name}</div>
+                <button class="reroll-btn" onclick="spinSinglePart(${idx})" ${isLocked ? 'disabled' : ''} title="引き直し">
+                    🔄
+                </button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function toggleLockPart(idx) {
+    if (appState.isSpinning) return;
+    playClick();
+    const tState = appState.themes[appState.activeTheme];
+    tState.locked[idx] = !tState.locked[idx];
+    renderAllMode();
+}
+
+function spinSinglePart(idx) {
+    if (appState.isSpinning) return;
+    const themeKey = appState.activeTheme;
+    const tState = appState.themes[themeKey];
+    if (tState.locked[idx]) return;
+
+    appState.isSpinning = true;
+    const cat = THEMES[themeKey].categories[idx];
+    const card = document.getElementById(`mini-card-${idx}`);
+    const svgBox = document.getElementById(`mini-svg-${idx}`);
+    const nameEl = document.getElementById(`mini-name-${idx}`);
+
+    card.classList.add('spinning');
+
+    let tick = 0;
+    const timer = setInterval(() => {
+        const r = Math.floor(Math.random() * cat.items.length);
+        svgBox.innerHTML = `<svg viewBox="0 0 120 120">${cat.items[r].svg}</svg>`;
+        nameEl.textContent = cat.items[r].name;
+        playTick(480 + tick * 28);
+
+        tick++;
+        if (tick >= 8) {
+            clearInterval(timer);
+            let finalIdx = Math.floor(Math.random() * cat.items.length);
+            if (cat.items.length > 1 && finalIdx === tState.selected[idx]) {
+                finalIdx = (finalIdx + 1) % cat.items.length;
+            }
+            tState.selected[idx] = finalIdx;
+            appState.isSpinning = false;
+            card.classList.remove('spinning');
+            playChime();
+            updateBonusBanner();
+            renderAllMode();
+            const newBox = document.getElementById(`mini-svg-${idx}`);
+            if (newBox) newBox.classList.add('animate-pop');
+        }
+    }, 52);
+}
+
+function spinAllInTheme() {
+    if (appState.isSpinning) return;
+    const themeKey = appState.activeTheme;
+    const tState = appState.themes[themeKey];
+    const cats = THEMES[themeKey].categories;
+
+    // すべてキープ中の場合は一旦全解除
+    if (tState.locked.every(v => v === true)) {
+        tState.locked = [false, false, false, false, false, false];
+        renderAllMode();
+    }
+
+    appState.isSpinning = true;
+    const shuffleBtn = document.getElementById('shuffle-all-btn');
+    shuffleBtn.disabled = true;
+
+    cats.forEach((_, idx) => {
+        if (!tState.locked[idx]) {
+            const card = document.getElementById(`mini-card-${idx}`);
+            if (card) card.classList.add('spinning');
+        }
+    });
+
+    let tick = 0;
+    const maxTicks = 13;
+    const timer = setInterval(() => {
+        cats.forEach((cat, idx) => {
+            if (!tState.locked[idx]) {
+                const r = Math.floor(Math.random() * cat.items.length);
+                const svgBox = document.getElementById(`mini-svg-${idx}`);
+                const nameEl = document.getElementById(`mini-name-${idx}`);
+                if (svgBox) svgBox.innerHTML = `<svg viewBox="0 0 120 120">${cat.items[r].svg}</svg>`;
+                if (nameEl) nameEl.textContent = cat.items[r].name;
+            }
+        });
+        playTick(420 + tick * 28);
+
+        tick++;
+        if (tick >= maxTicks) {
+            clearInterval(timer);
+            cats.forEach((cat, idx) => {
+                if (!tState.locked[idx]) {
+                    tState.selected[idx] = Math.floor(Math.random() * cat.items.length);
+                }
+            });
+            appState.isSpinning = false;
+            shuffleBtn.disabled = false;
+            playFanfare();
+            updateBonusBanner();
+            renderAllMode();
+
+            cats.forEach((_, idx) => {
+                if (!tState.locked[idx]) {
+                    const box = document.getElementById(`mini-svg-${idx}`);
+                    if (box) box.classList.add('animate-pop');
+                }
+            });
+        }
+    }, 55);
+}
+
+/**
+ * ============================================================================
+ * あそびかたモーダル制御
+ * ============================================================================
+ */
+function openHelp() {
+    playClick();
+    document.getElementById('help-modal').classList.remove('hidden');
+}
+
+function closeHelp() {
+    playClick();
+    document.getElementById('help-modal').classList.add('hidden');
+}
+
+// 初期表示
+window.addEventListener('DOMContentLoaded', () => {
+    renderCurrentView();
+});
+</script>
+</body>
+</html>
